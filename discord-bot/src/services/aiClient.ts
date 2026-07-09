@@ -12,7 +12,7 @@ export class AiClient {
     form.set('file', new File([buffer], filename));
     for (const [key, value] of Object.entries(fields)) form.set(key, value);
     try {
-      const res = await request(`${config.aiServiceUrl}/v1/analyze`, { method: 'POST', body: form, bodyTimeout: 30_000, headersTimeout: 5_000 });
+      const res = await request(`${config.aiServiceUrl}/v1/analyze`, { method: 'POST', body: form, bodyTimeout: config.aiBodyTimeoutMs, headersTimeout: config.aiHeadersTimeoutMs });
       if (res.statusCode >= 500) throw new Error(`AI service ${res.statusCode}`);
       const json = await res.body.json() as AnalysisResult;
       this.failures = 0;
@@ -27,7 +27,7 @@ export class AiClient {
     const form = new FormData();
     form.set('file', new File([buffer], filename));
     for (const [key, value] of Object.entries(fields)) form.set(key, value);
-    const res = await request(`${config.aiServiceUrl}/v1/spam-images`, { method: 'POST', body: form, bodyTimeout: 60_000, headersTimeout: 5_000 });
+    const res = await request(`${config.aiServiceUrl}/v1/spam-images`, { method: 'POST', body: form, bodyTimeout: config.aiBodyTimeoutMs, headersTimeout: config.aiHeadersTimeoutMs });
     if (res.statusCode >= 400) throw new Error(`AI service registration failed: ${res.statusCode}`);
     return res.body.json();
   }

@@ -183,6 +183,16 @@ npm start
 ```
 
 
+
+### AI Service の初回応答時間
+
+DINOv2 モデルの初回ロードや CPU 推論には時間がかかるため、Bot 側の AI Service HTTP timeout は `.env` で調整できます。`UND_ERR_HEADERS_TIMEOUT` が出る場合は、AI Service が処理中に Bot 側の待ち時間を超えています。
+
+```env
+AI_HEADERS_TIMEOUT_MS=180000
+AI_BODY_TIMEOUT_MS=300000
+```
+
 ### AI Service のポート変更
 
 ローカル起動で AI Service を `8004` など別ポートにしたい場合は、`ai-service/.env` と `discord-bot/.env` を合わせてください。
