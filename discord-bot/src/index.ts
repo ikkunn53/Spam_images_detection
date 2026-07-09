@@ -7,7 +7,9 @@ import { handleReviewButton } from './interactions/reviewButtons.js';
 import './repositories/database.js';
 
 if (!config.discordToken) throw new Error('DISCORD_TOKEN is required');
-const client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent] });
+const intents = [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages];
+if (config.messageContentIntent) intents.push(GatewayIntentBits.MessageContent);
+const client = new Client({ intents });
 const commands = new Collection<string, typeof registerSpamImageCommand>();
 commands.set(registerSpamImageCommand.data.name, registerSpamImageCommand);
 client.once(Events.ClientReady, (readyClient) => logger.info({ user: readyClient.user.tag }, 'bot ready'));

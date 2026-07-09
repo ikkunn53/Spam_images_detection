@@ -17,6 +17,16 @@ startup\setup.bat
 
 実行後、必ず `discord-bot\.env` を編集して `DISCORD_TOKEN` と `CLIENT_ID` を設定してください。
 
+## スラッシュコマンド登録
+
+Bot にコマンド候補が出ない場合は、`discord-bot\.env` に `DISCORD_TOKEN` と `CLIENT_ID` を設定した後で次を実行してください。
+
+```bat
+startup\deploy-commands.bat
+```
+
+OAuth2 URL Generator で `applications.commands` scope を付けずに招待した場合、サーバー側でコマンド候補が表示されません。開発中にすぐ反映したい場合は `GUILD_ID` に対象サーバー ID を設定してから実行してください。
+
 ## 毎回の起動
 
 ```bat

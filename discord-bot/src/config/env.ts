@@ -14,6 +14,7 @@ export const config = {
   guildId: process.env.GUILD_ID,
   databasePath: process.env.DATABASE_PATH ?? '../data/bot.sqlite',
   aiServiceUrl: process.env.AI_SERVICE_URL ?? 'http://localhost:8000',
+  messageContentIntent: process.env.MESSAGE_CONTENT_INTENT === 'true',
   maxImageSizeBytes: numberFromEnv('MAX_IMAGE_SIZE_MB', 8) * 1024 * 1024,
   downloadTimeoutMs: numberFromEnv('DOWNLOAD_TIMEOUT_MS', 8000),
   downloadConcurrency: numberFromEnv('DOWNLOAD_CONCURRENCY', 4),

@@ -134,16 +134,20 @@ docker-compose.yml  Bot + AI Service 起動例
 ```bash
 cp discord-bot/.env.example discord-bot/.env
 cp ai-service/.env.example ai-service/.env
-# .env に DISCORD_TOKEN、CLIENT_ID、必要なら GUILD_ID を設定
+# .env に DISCORD_TOKEN、CLIENT_ID、必要なら GUILD_ID と MESSAGE_CONTENT_INTENT を設定
 ```
 
 ### Discord Developer Portal
+
+- OAuth2 URL Generator の Scopes:
+  - `bot`
+  - `applications.commands`
 
 - Bot Token は `.env` の `DISCORD_TOKEN` に設定し、コードへ直書きしないでください。
 - Gateway Intent:
   - `Guilds`
   - `GuildMessages`
-  - `MessageContent`: 添付画像だけなら本文なしで運用できる場合がありますが、ログに元本文を含める要件があるため有効化を推奨します。大規模サーバーでは Privileged Intent 審査が必要になる可能性があります。
+  - `MessageContent`: `MESSAGE_CONTENT_INTENT=true` にした場合のみ Bot が要求します。Discord Developer Portal 側で Message Content Intent を有効化していない状態で要求すると `Used disallowed intents` で起動に失敗します。添付画像や本文ログを安定して扱うには有効化を推奨しますが、大規模サーバーでは Privileged Intent 審査が必要になる可能性があります。
 - 必要権限:
   - View Channels
   - Read Message History
@@ -189,10 +193,11 @@ Windows で初回セットアップと普段の起動を簡単にするため、
 
 ```bat
 startup\setup.bat
+startup\deploy-commands.bat
 startup\start-bot.bat
 ```
 
-初回は `setup.bat` を実行後、`discord-bot\.env` に `DISCORD_TOKEN` と `CLIENT_ID` を設定してください。以後は基本的に `start-bot.bat` を起動すれば AI Service と Discord Bot が別ウィンドウで起動します。
+初回は `setup.bat` を実行後、`discord-bot\.env` に `DISCORD_TOKEN` と `CLIENT_ID` を設定してください。その後、コマンド候補を表示するため `deploy-commands.bat` を実行してください。以後は基本的に `start-bot.bat` を起動すれば AI Service と Discord Bot が別ウィンドウで起動します。
 
 ## 既知の制限
 
