@@ -6,17 +6,31 @@ REM Starts the local AI Service and Discord Bot in separate windows.
 
 cd /d "%~dp0\.."
 set "PROJECT_ROOT=%CD%"
+set "NEED_SETUP=0"
+
+if not exist "%PROJECT_ROOT%\discord-bot\.env" set "NEED_SETUP=1"
+if not exist "%PROJECT_ROOT%\ai-service\.env" set "NEED_SETUP=1"
+if not exist "%PROJECT_ROOT%\ai-service\.venv\Scripts\python.exe" set "NEED_SETUP=1"
+
+if "%NEED_SETUP%" == "1" (
+  echo Required setup files are missing. Running startup\setup.bat now...
+  call "%PROJECT_ROOT%\startup\setup.bat"
+  if errorlevel 1 (
+    echo ERROR: startup\setup.bat failed. Fix the setup error above and run this file again.
+    exit /b 1
+  )
+)
 
 if not exist "%PROJECT_ROOT%\discord-bot\.env" (
-  echo ERROR: discord-bot\.env does not exist. Run startup\setup.bat first.
+  echo ERROR: discord-bot\.env still does not exist after setup.
   exit /b 1
 )
 if not exist "%PROJECT_ROOT%\ai-service\.env" (
-  echo ERROR: ai-service\.env does not exist. Run startup\setup.bat first.
+  echo ERROR: ai-service\.env still does not exist after setup.
   exit /b 1
 )
 if not exist "%PROJECT_ROOT%\ai-service\.venv\Scripts\python.exe" (
-  echo ERROR: ai-service virtual environment does not exist. Run startup\setup.bat first.
+  echo ERROR: ai-service virtual environment still does not exist after setup.
   exit /b 1
 )
 if not exist "%PROJECT_ROOT%\discord-bot\dist\index.js" (

@@ -34,6 +34,8 @@ startup\start-bot.bat
 
 `start-bot.bat` は AI Service を起動した後、`http://127.0.0.1:8000/health` を最大 60 秒間確認します。AI Service が正常になるまでは Discord Bot を起動しないため、固定秒数待ちより安全です。
 
+補足: `start-bot.bat` 実行時に `.env` や `ai-service\.venv` が存在しない場合は、自動で `startup\setup.bat` を呼び出して初期セットアップを試みます。ただし、初回セットアップ後は `discord-bot\.env` に `DISCORD_TOKEN` と `CLIENT_ID` を設定してください。
+
 ## 前提
 
 - Windows

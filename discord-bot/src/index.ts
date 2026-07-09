@@ -11,7 +11,7 @@ const client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBit
 const commands = new Collection<string, typeof registerSpamImageCommand>();
 commands.set(registerSpamImageCommand.data.name, registerSpamImageCommand);
 client.once(Events.ClientReady, (readyClient) => logger.info({ user: readyClient.user.tag }, 'bot ready'));
-client.on(messageCreate.name, (...args) => messageCreate.execute(args[0]));
+client.on(Events.MessageCreate, (message) => messageCreate.execute(message));
 client.on(Events.InteractionCreate, async (interaction) => {
   try {
     if (interaction.isButton() && await handleReviewButton(interaction)) return;

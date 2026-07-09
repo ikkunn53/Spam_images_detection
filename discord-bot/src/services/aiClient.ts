@@ -1,4 +1,4 @@
-import { request } from 'undici';
+import { File, FormData, request } from 'undici';
 import { config } from '../config/env.js';
 
 export type AnalysisResult = { is_spam: boolean; action: 'delete' | 'review' | 'allow'; confidence_level: 'high' | 'medium' | 'low'; decision_method: string; sha256_match: boolean; phash_distance: number | null; ai_similarity: number | null; matched_spam_image_id: number | null; error?: string };
@@ -9,7 +9,7 @@ export class AiClient {
   async analyze(buffer: Buffer, filename: string, fields: Record<string, string>): Promise<AnalysisResult | null> {
     if (Date.now() < this.circuitOpenUntil) return null;
     const form = new FormData();
-    form.set('file', new Blob([buffer]), filename);
+    form.set('file', new File([buffer], filename));
     for (const [key, value] of Object.entries(fields)) form.set(key, value);
     try {
       const res = await request(`${config.aiServiceUrl}/v1/analyze`, { method: 'POST', body: form, bodyTimeout: 30_000, headersTimeout: 5_000 });
@@ -25,7 +25,7 @@ export class AiClient {
   }
   async registerSpamImage(buffer: Buffer, filename: string, fields: Record<string, string>): Promise<unknown> {
     const form = new FormData();
-    form.set('file', new Blob([buffer]), filename);
+    form.set('file', new File([buffer], filename));
     for (const [key, value] of Object.entries(fields)) form.set(key, value);
     const res = await request(`${config.aiServiceUrl}/v1/spam-images`, { method: 'POST', body: form, bodyTimeout: 60_000, headersTimeout: 5_000 });
     if (res.statusCode >= 400) throw new Error(`AI service registration failed: ${res.statusCode}`);
