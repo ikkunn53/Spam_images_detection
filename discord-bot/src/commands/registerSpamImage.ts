@@ -1,6 +1,7 @@
-import { SlashCommandBuilder, ChatInputCommandInteraction, PermissionFlagsBits } from 'discord.js';
+import { SlashCommandBuilder, ChatInputCommandInteraction, PermissionFlagsBits, MessageFlags } from 'discord.js';
 import { downloadImage, isProcessableImageAttachment } from '../services/imageDownloader.js';
 import { AiClient } from '../services/aiClient.js';
+import { logger } from '../utils/logger.js';
 
 const ai = new AiClient();
 export const registerSpamImageCommand = {
@@ -11,12 +12,17 @@ export const registerSpamImageCommand = {
   async execute(interaction: ChatInputCommandInteraction) {
     const attachment = interaction.options.getAttachment('image', true);
     if (!isProcessableImageAttachment(attachment)) {
-      await interaction.reply({ content: '対応していない画像、またはサイズ上限超過です。', ephemeral: true });
+      await interaction.reply({ content: '対応していない画像、またはサイズ上限超過です。', flags: MessageFlags.Ephemeral });
       return;
     }
-    await interaction.deferReply({ ephemeral: true });
-    const image = await downloadImage(attachment);
-    const result = await ai.registerSpamImage(image.buffer, image.filename, { guild_id: interaction.guildId ?? '', registered_by_user_id: interaction.user.id, category: interaction.options.getString('category') ?? '', notes: interaction.options.getString('notes') ?? '' });
-    await interaction.editReply(`登録しました: ${JSON.stringify(result)}`);
+    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+    try {
+      const image = await downloadImage(attachment);
+      const result = await ai.registerSpamImage(image.buffer, image.filename, { guild_id: interaction.guildId ?? '', registered_by_user_id: interaction.user.id, category: interaction.options.getString('category') ?? '', notes: interaction.options.getString('notes') ?? '' });
+      await interaction.editReply(`登録しました: ${JSON.stringify(result)}`);
+    } catch (error) {
+      logger.error({ error, guildId: interaction.guildId, userId: interaction.user.id }, 'failed to register spam image');
+      await interaction.editReply('スパム画像登録に失敗しました。AI Service が起動しているか確認してください。Windows なら `startup\\start-bot.bat` で AI Service と Bot の両方を起動してください。');
+    }
   }
 };

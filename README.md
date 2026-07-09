@@ -182,6 +182,21 @@ npm run build
 npm start
 ```
 
+
+### AI Service のポート変更
+
+ローカル起動で AI Service を `8004` など別ポートにしたい場合は、`ai-service/.env` と `discord-bot/.env` を合わせてください。
+
+```env
+# ai-service/.env
+AI_SERVICE_PORT=8004
+
+# discord-bot/.env
+AI_SERVICE_URL=http://localhost:8004
+```
+
+Docker Compose でホスト側公開ポートを変える場合は、Compose 実行時の環境変数 `AI_SERVICE_PORT=8004` を設定できます。コンテナ間通信では Bot は `http://ai-service:8000` を使います。
+
 ## スラッシュコマンド
 
 - `/register-spam-image image category notes`: 管理者専用。添付画像を AI Service へ送り、既知スパム画像として登録します。

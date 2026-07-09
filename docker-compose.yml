@@ -9,7 +9,7 @@ services:
       - ./data:/workspace/data
       - ./.hf-cache:/root/.cache/huggingface
     ports:
-      - "8000:8000"
+      - "${AI_SERVICE_PORT:-8000}:8000"
   discord-bot:
     build: ./discord-bot
     env_file: ./discord-bot/.env

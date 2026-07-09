@@ -9,4 +9,5 @@ class Settings(BaseSettings):
     phash_max_distance: int = 6
     dinov2_model_name: str = 'facebook/dinov2-small'
     ai_worker_concurrency: int = 1
+    ai_service_port: int = 8000
 settings = Settings()

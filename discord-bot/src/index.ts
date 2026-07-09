@@ -1,4 +1,4 @@
-import { Client, Collection, Events, GatewayIntentBits } from 'discord.js';
+import { Client, Collection, Events, GatewayIntentBits, MessageFlags } from 'discord.js';
 import { config } from './config/env.js';
 import { logger } from './utils/logger.js';
 import { messageCreate } from './events/messageCreate.js';
@@ -22,7 +22,11 @@ client.on(Events.InteractionCreate, async (interaction) => {
     if (command) await command.execute(interaction);
   } catch (error) {
     logger.error({ error }, 'interaction failed');
-    if (interaction.isRepliable()) await interaction.reply({ content: '処理中にエラーが発生しました。', ephemeral: true }).catch(() => undefined);
+    if (interaction.isRepliable()) {
+      const content = '処理中にエラーが発生しました。';
+      if (interaction.deferred || interaction.replied) await interaction.editReply({ content }).catch(() => undefined);
+      else await interaction.reply({ content, flags: MessageFlags.Ephemeral }).catch(() => undefined);
+    }
   }
 });
 client.login(config.discordToken);
