@@ -1,0 +1,22 @@
+services:
+  ai-service:
+    build: ./ai-service
+    env_file: ./ai-service/.env
+    environment:
+      AI_DATABASE_PATH: /workspace/data/ai.sqlite
+      IMAGE_STORAGE_DIR: /workspace/data/spam-images
+    volumes:
+      - ./data:/workspace/data
+      - ./.hf-cache:/root/.cache/huggingface
+    ports:
+      - "8000:8000"
+  discord-bot:
+    build: ./discord-bot
+    env_file: ./discord-bot/.env
+    depends_on:
+      - ai-service
+    environment:
+      DATABASE_PATH: /workspace/data/bot.sqlite
+      AI_SERVICE_URL: http://ai-service:8000
+    volumes:
+      - ./data:/workspace/data
