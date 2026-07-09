@@ -182,6 +182,18 @@ npm start
 
 - `/register-spam-image image category notes`: 管理者専用。添付画像を AI Service へ送り、既知スパム画像として登録します。
 
+
+## Windows startup scripts
+
+Windows で初回セットアップと普段の起動を簡単にするため、`startup/` に batch ファイルを用意しています。
+
+```bat
+startup\setup.bat
+startup\start-bot.bat
+```
+
+初回は `setup.bat` を実行後、`discord-bot\.env` に `DISCORD_TOKEN` と `CLIENT_ID` を設定してください。以後は基本的に `start-bot.bat` を起動すれば AI Service と Discord Bot が別ウィンドウで起動します。
+
 ## 既知の制限
 
 - pHash 判定の Node.js 側実装は Phase 2 拡張用インターフェースのみで、初期の pHash 計算は AI Service が担当します。

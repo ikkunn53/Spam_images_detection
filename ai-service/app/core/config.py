@@ -1,5 +1,6 @@
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 class Settings(BaseSettings):
+    model_config = SettingsConfigDict(env_file='.env', env_file_encoding='utf-8')
     ai_database_path: str = '../data/ai.sqlite'
     image_storage_dir: str = '../data/spam-images'
     max_image_size_mb: int = 8
