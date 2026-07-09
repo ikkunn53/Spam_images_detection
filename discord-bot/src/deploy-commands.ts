@@ -1,0 +1,8 @@
+import { REST, Routes } from 'discord.js';
+import { config } from './config/env.js';
+import { registerSpamImageCommand } from './commands/registerSpamImage.js';
+const rest = new REST({ version: '10' }).setToken(config.discordToken);
+const body = [registerSpamImageCommand.data.toJSON()];
+if (!config.clientId) throw new Error('CLIENT_ID is required');
+await rest.put(config.guildId ? Routes.applicationGuildCommands(config.clientId, config.guildId) : Routes.applicationCommands(config.clientId), { body });
+console.log('commands deployed');
