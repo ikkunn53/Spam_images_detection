@@ -211,7 +211,7 @@ Docker Compose でホスト側公開ポートを変える場合は、Compose 実
 
 ## Bot Web 管理画面
 
-Bot 起動中に `http://localhost:3000/dashboard/guilds` から Discord OAuth2 ログインすると、ログインユーザーが管理権限を持ち、かつ Bot が導入されているサーバーだけを管理できます。BOT 運営者向けの全体管理は `BOT_OWNER_USER_IDS` に Discord ユーザー ID を指定したユーザーだけが `http://localhost:3000/admin/guilds` から利用できます。OAuth2 には `CLIENT_SECRET` と `WEB_BASE_URL` の設定が必要です。ポートは `ADMIN_WEB_PORT` で変更できます。
+Bot 起動中に `http://localhost:3000/dashboard/guilds` から Discord OAuth2 ログインすると、ログインユーザーが管理権限を持ち、かつ Bot が導入されているサーバーだけを管理できます。BOT 運営者向けの全体管理は `BOT_OWNER_USER_IDS` に Discord ユーザー ID を指定したユーザーだけが `http://localhost:3000/admin/guilds` から利用できます。OAuth2 には `CLIENT_SECRET` と `WEB_BASE_URL` の設定が必要です。ポートは `ADMIN_WEB_PORT` で変更できます。Discord Developer Portal の OAuth2 Redirects には、`WEB_BASE_URL` に `/auth/callback` を付けた URL（例: `http://localhost:3000/auth/callback`）を完全一致で登録してください。`redirect_uri が無効です` と表示される場合は、この登録値と `.env` の `WEB_BASE_URL` が一致していません。
 
 ## スパム画像管理画面
 

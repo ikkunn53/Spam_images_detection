@@ -29,6 +29,6 @@ export const config = {
   adminWebPort: numberFromEnv('ADMIN_WEB_PORT', 3000),
   botOwnerUserIds: (process.env.BOT_OWNER_USER_IDS ?? '').split(',').map((id) => id.trim()).filter(Boolean),
   discordClientSecret: process.env.CLIENT_SECRET ?? '',
-  webBaseUrl: process.env.WEB_BASE_URL ?? `http://localhost:${numberFromEnv('ADMIN_WEB_PORT', 3000)}`,
+  webBaseUrl: (process.env.WEB_BASE_URL ?? `http://localhost:${numberFromEnv('ADMIN_WEB_PORT', 3000)}`).replace(/\/+$/, ''),
   logLevel: process.env.LOG_LEVEL ?? 'info'
 };
