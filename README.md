@@ -134,7 +134,8 @@ docker-compose.yml  Bot + AI Service 起動例
 ```bash
 cp discord-bot/.env.example discord-bot/.env
 cp ai-service/.env.example ai-service/.env
-# .env に DISCORD_TOKEN、CLIENT_ID、必要なら GUILD_ID と MESSAGE_CONTENT_INTENT を設定
+# .env に DISCORD_TOKEN、CLIENT_ID、必要なら GUILD_ID を設定
+# 画像検知には MESSAGE_CONTENT_INTENT=true と Discord Developer Portal 側の有効化が必要
 ```
 
 ### Discord Developer Portal
@@ -147,7 +148,7 @@ cp ai-service/.env.example ai-service/.env
 - Gateway Intent:
   - `Guilds`
   - `GuildMessages`
-  - `MessageContent`: `MESSAGE_CONTENT_INTENT=true` にした場合のみ Bot が要求します。Discord Developer Portal 側で Message Content Intent を有効化していない状態で要求すると `Used disallowed intents` で起動に失敗します。添付画像や本文ログを安定して扱うには有効化を推奨しますが、大規模サーバーでは Privileged Intent 審査が必要になる可能性があります。
+  - `MessageContent`: 画像添付を検知するために必要です。既定では Bot が要求します（無効化する場合のみ `MESSAGE_CONTENT_INTENT=false`）。Discord Developer Portal 側で Message Content Intent を有効化していない状態で要求すると `Used disallowed intents` で起動に失敗します。大規模サーバーでは Privileged Intent 審査が必要になる可能性があります。
 - 必要権限:
   - View Channels
   - Read Message History
@@ -207,9 +208,30 @@ AI_SERVICE_URL=http://localhost:8004
 
 Docker Compose でホスト側公開ポートを変える場合は、Compose 実行時の環境変数 `AI_SERVICE_PORT=8004` を設定できます。コンテナ間通信では Bot は `http://ai-service:8000` を使います。
 
+
+## Bot Web 管理画面
+
+Bot 起動中に `http://localhost:3000/dashboard/guilds` から Discord OAuth2 ログインすると、ログインユーザーが管理権限を持ち、かつ Bot が導入されているサーバーだけを管理できます。BOT 運営者向けの全体管理は `BOT_OWNER_USER_IDS` に Discord ユーザー ID を指定したユーザーだけが `http://localhost:3000/admin/guilds` から利用できます。OAuth2 には `CLIENT_SECRET` と `WEB_BASE_URL` の設定が必要です。ポートは `ADMIN_WEB_PORT` で変更できます。
+
+## スパム画像管理画面
+
+AI Service 起動中に `http://localhost:8000/v1/admin/spam-images` を開くと、登録済みスパム画像を一覧表示できます。誤登録した画像は「削除」ボタンで無効化でき、無効化後は検知対象から外れます。画像ファイル自体は監査・復元用に保存されたままです。`ADMIN_WEB_TOKEN` を設定した場合は、初回アクセス時に `http://localhost:8000/v1/admin/spam-images?token=設定値` を開くことで管理 Cookie が発行され、以降の登録・編集・削除操作にも認証が必要になります。
+
+## 判定しきい値
+
+- `PHASH_MAX_DISTANCE`: 登録済み画像と投稿画像の pHash 距離がこの値以下なら、既に登録済み画像の軽微な再圧縮・リサイズとして `delete` 判定します。既定値は `10` です。DINOv2 類似度だけで届く類似画像は引き続き `review` 判定になります。
+
+## 誤検知報告
+
+- `FALSE_POSITIVE_REPORT_CHANNEL_ID`: レビューボタンで誤検知を選択後、管理者が「報告する」を選んだ場合に送信するチャンネル ID です。未設定の場合、報告確認は出ますが送信先未設定として通知されます。
+
 ## スラッシュコマンド
 
-- `/register-spam-image image category notes`: 管理者専用。添付画像を AI Service へ送り、既知スパム画像として登録します。
+- `/register-spam-image image [category] [notes]`: 管理者専用。`image` だけ必須で、カテゴリと備考は任意です。添付画像を AI Service へ送り、既知スパム画像として登録します。
+- `/spam-log-channel set channel`: サーバーごとの画像スパム検知ログ送信先を設定します。
+- `/spam-log-channel show`: 現在の画像スパム検知ログ送信先を表示します。
+- `/spam-log-channel clear`: 画像スパム検知ログ送信先の設定を解除します。
+- `/ping`: Bot、AI Service、Message Content Intent、検知ログチャンネル設定の状態を確認します。
 
 
 ## Windows startup scripts
