@@ -208,6 +208,10 @@ AI_SERVICE_URL=http://localhost:8004
 
 Docker Compose でホスト側公開ポートを変える場合は、Compose 実行時の環境変数 `AI_SERVICE_PORT=8004` を設定できます。コンテナ間通信では Bot は `http://ai-service:8000` を使います。
 
+## 判定しきい値
+
+- `PHASH_MAX_DISTANCE`: 登録済み画像と投稿画像の pHash 距離がこの値以下なら、既に登録済み画像の軽微な再圧縮・リサイズとして `delete` 判定します。既定値は `10` です。DINOv2 類似度だけで届く類似画像は引き続き `review` 判定になります。
+
 ## スラッシュコマンド
 
 - `/register-spam-image image [category] [notes]`: 管理者専用。`image` だけ必須で、カテゴリと備考は任意です。添付画像を AI Service へ送り、既知スパム画像として登録します。

@@ -17,8 +17,12 @@ export class AiClient {
     for (const [key, value] of Object.entries(fields)) form.set(key, value);
     try {
       const res = await request(`${config.aiServiceUrl}/v1/analyze`, { method: 'POST', body: form, bodyTimeout: config.aiBodyTimeoutMs, headersTimeout: config.aiHeadersTimeoutMs });
-      if (res.statusCode >= 500) throw new Error(`AI service ${res.statusCode}`);
+      if (res.statusCode >= 400) {
+        const body = await res.body.text();
+        throw new Error(`AI service analysis failed: ${res.statusCode} ${body}`);
+      }
       const json = await res.body.json() as AnalysisResult;
+      if (!['delete', 'review', 'allow'].includes(json.action)) throw new Error(`AI service returned invalid action: ${String(json.action)}`);
       this.failures = 0;
       logger.info({ statusCode: res.statusCode, action: json.action, decisionMethod: json.decision_method, matchedSpamImageId: json.matched_spam_image_id }, 'AI analysis response received');
       return json;
