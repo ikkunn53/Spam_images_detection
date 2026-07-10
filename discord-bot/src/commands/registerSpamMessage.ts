@@ -88,8 +88,10 @@ export const registerSpamMessageCommand = {
       }
     }
 
-    const lines = [`登録対象: ${targets.length}枚`, `成功: ${successes.length}枚`, ...successes.map((item) => `- ${item}`)];
-    if (failures.length > 0) lines.push(`失敗: ${failures.length}枚`, ...failures.map((item) => `- ${item}`));
-    await interaction.editReply(lines.join('\n').slice(0, 1900));
+    if (failures.length === 0) {
+      await interaction.editReply(targets.length === 1 ? '登録できました！' : `${successes.length}枚の画像を登録できました！`);
+      return;
+    }
+    await interaction.editReply(`登録できました: ${successes.length}枚 / 失敗: ${failures.length}枚`);
   }
 };
