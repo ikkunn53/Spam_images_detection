@@ -214,6 +214,7 @@ Docker Compose でホスト側公開ポートを変える場合は、Compose 実
 - `/spam-log-channel set channel`: サーバーごとの画像スパム検知ログ送信先を設定します。
 - `/spam-log-channel show`: 現在の画像スパム検知ログ送信先を表示します。
 - `/spam-log-channel clear`: 画像スパム検知ログ送信先の設定を解除します。
+- `/ping`: Bot、AI Service、Message Content Intent、検知ログチャンネル設定の状態を確認します。
 
 
 ## Windows startup scripts
