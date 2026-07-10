@@ -3,6 +3,23 @@ import { GuildSettingsRepository } from '../repositories/guildSettingsRepository
 
 const guildSettings = new GuildSettingsRepository();
 
+const requiredLogChannelPermissions: Array<[bigint, string]> = [
+  [PermissionFlagsBits.ViewChannel, 'チャンネルを見る'],
+  [PermissionFlagsBits.SendMessages, 'メッセージを送信'],
+  [PermissionFlagsBits.EmbedLinks, '埋め込みリンク'],
+  [PermissionFlagsBits.AttachFiles, 'ファイルを添付'],
+  [PermissionFlagsBits.ReadMessageHistory, 'メッセージ履歴を読む']
+];
+
+const missingLogChannelPermissions = (interaction: ChatInputCommandInteraction, channelId: string): string[] | null => {
+  const channel = interaction.guild?.channels.cache.get(channelId);
+  const botUser = interaction.client.user;
+  if (!channel || !botUser || !('permissionsFor' in channel)) return null;
+  const permissions = channel.permissionsFor(botUser);
+  if (!permissions) return null;
+  return requiredLogChannelPermissions.filter(([permission]) => !permissions.has(permission)).map(([, label]) => label);
+};
+
 export const configureLogChannelCommand = {
   data: new SlashCommandBuilder()
     .setName('spam-log-channel')
@@ -33,6 +50,15 @@ export const configureLogChannelCommand = {
     const subcommand = interaction.options.getSubcommand();
     if (subcommand === 'set') {
       const channel = interaction.options.getChannel('channel', true, [ChannelType.GuildText]);
+      const missingPermissions = missingLogChannelPermissions(interaction, channel.id);
+      if (missingPermissions === null) {
+        await interaction.editReply('Bot のチャンネル権限を確認できなかったため、ログ送信先を設定できませんでした。');
+        return;
+      }
+      if (missingPermissions.length > 0) {
+        await interaction.editReply(`Bot に必要な権限が不足しているため、ログ送信先を設定できません。\n不足権限: ${missingPermissions.join(', ')}`);
+        return;
+      }
       guildSettings.setLogChannel(interaction.guildId, channel.id);
       await interaction.editReply(`画像スパム検知ログの送信先を <#${channel.id}> に設定しました。`);
       return;

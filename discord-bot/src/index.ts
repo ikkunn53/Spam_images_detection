@@ -6,6 +6,7 @@ import { registerSpamImageCommand } from './commands/registerSpamImage.js';
 import { configureLogChannelCommand } from './commands/configureLogChannel.js';
 import { pingCommand } from './commands/ping.js';
 import { handleReviewButton } from './interactions/reviewButtons.js';
+import { startWebAdmin } from './webAdmin.js';
 import './repositories/database.js';
 
 if (!config.discordToken) throw new Error('DISCORD_TOKEN is required');
@@ -17,7 +18,10 @@ const commands = new Collection<string, typeof registerSpamImageCommand | typeof
 commands.set(registerSpamImageCommand.data.name, registerSpamImageCommand);
 commands.set(configureLogChannelCommand.data.name, configureLogChannelCommand);
 commands.set(pingCommand.data.name, pingCommand);
-client.once(Events.ClientReady, (readyClient) => logger.info({ user: readyClient.user.tag }, 'bot ready'));
+client.once(Events.ClientReady, (readyClient) => {
+  logger.info({ user: readyClient.user.tag }, 'bot ready');
+  startWebAdmin(client);
+});
 client.on(Events.MessageCreate, (message) => messageCreate.execute(message));
 client.on(Events.InteractionCreate, async (interaction) => {
   try {

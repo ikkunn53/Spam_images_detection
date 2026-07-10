@@ -208,9 +208,22 @@ AI_SERVICE_URL=http://localhost:8004
 
 Docker Compose でホスト側公開ポートを変える場合は、Compose 実行時の環境変数 `AI_SERVICE_PORT=8004` を設定できます。コンテナ間通信では Bot は `http://ai-service:8000` を使います。
 
+
+## Bot Web 管理画面
+
+Bot 起動中に `http://localhost:3000/dashboard/guilds` から Discord OAuth2 ログインすると、ログインユーザーが管理権限を持ち、かつ Bot が導入されているサーバーだけを管理できます。BOT 運営者向けの全体管理は `BOT_OWNER_USER_IDS` に Discord ユーザー ID を指定したユーザーだけが `http://localhost:3000/admin/guilds` から利用できます。OAuth2 には `CLIENT_SECRET` と `WEB_BASE_URL` の設定が必要です。ポートは `ADMIN_WEB_PORT` で変更できます。
+
+## スパム画像管理画面
+
+AI Service 起動中に `http://localhost:8000/v1/admin/spam-images` を開くと、登録済みスパム画像を一覧表示できます。誤登録した画像は「削除」ボタンで無効化でき、無効化後は検知対象から外れます。画像ファイル自体は監査・復元用に保存されたままです。`ADMIN_WEB_TOKEN` を設定した場合は、初回アクセス時に `http://localhost:8000/v1/admin/spam-images?token=設定値` を開くことで管理 Cookie が発行され、以降の登録・編集・削除操作にも認証が必要になります。
+
 ## 判定しきい値
 
 - `PHASH_MAX_DISTANCE`: 登録済み画像と投稿画像の pHash 距離がこの値以下なら、既に登録済み画像の軽微な再圧縮・リサイズとして `delete` 判定します。既定値は `10` です。DINOv2 類似度だけで届く類似画像は引き続き `review` 判定になります。
+
+## 誤検知報告
+
+- `FALSE_POSITIVE_REPORT_CHANNEL_ID`: レビューボタンで誤検知を選択後、管理者が「報告する」を選んだ場合に送信するチャンネル ID です。未設定の場合、報告確認は出ますが送信先未設定として通知されます。
 
 ## スラッシュコマンド
 

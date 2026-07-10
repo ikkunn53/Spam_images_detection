@@ -37,12 +37,16 @@ export const sendDetectionLog = async (message: Message, result: AnalysisResult,
     )
     .setImage(`attachment://${attachmentName}`)
     .setTimestamp(message.createdAt);
-  const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
-    new ButtonBuilder().setCustomId(`review:confirm:${detectionEventId}`).setLabel('スパム確定').setStyle(ButtonStyle.Danger),
-    new ButtonBuilder().setCustomId(`review:false_positive:${detectionEventId}`).setLabel('誤検知').setStyle(ButtonStyle.Secondary),
-    new ButtonBuilder().setCustomId(`review:register:${detectionEventId}`).setLabel('スパム画像として登録').setStyle(ButtonStyle.Primary),
-    new ButtonBuilder().setCustomId(`review:add_group:${detectionEventId}`).setLabel('類似画像グループへ追加').setStyle(ButtonStyle.Success)
-  );
+  const buttons = result.action === 'delete'
+    ? [
+      new ButtonBuilder().setCustomId(`review:confirm:${detectionEventId}`).setLabel('スパム確定').setStyle(ButtonStyle.Danger),
+      new ButtonBuilder().setCustomId(`review:false_positive:${detectionEventId}`).setLabel('誤検知').setStyle(ButtonStyle.Secondary)
+    ]
+    : [
+      new ButtonBuilder().setCustomId(`review:register:${detectionEventId}`).setLabel('スパムとして登録').setStyle(ButtonStyle.Danger),
+      new ButtonBuilder().setCustomId(`review:false_positive:${detectionEventId}`).setLabel('誤検知').setStyle(ButtonStyle.Secondary)
+    ];
+  const row = new ActionRowBuilder<ButtonBuilder>().addComponents(...buttons);
   await channel.send({ embeds: [embed], files: [new AttachmentBuilder(image, { name: attachmentName })], components: [row] });
   logger.info({ guildId: message.guildId, messageId: message.id, detectionEventId, logChannelId, action: result.action, handling }, 'detection log sent');
 };

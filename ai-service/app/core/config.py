@@ -10,4 +10,5 @@ class Settings(BaseSettings):
     dinov2_model_name: str = 'facebook/dinov2-small'
     ai_worker_concurrency: int = 1
     ai_service_port: int = 8000
+    admin_web_token: str = ''
 settings = Settings()
