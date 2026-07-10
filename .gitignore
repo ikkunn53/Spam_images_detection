@@ -8,3 +8,7 @@ data/
 *.sqlite
 *.db
 .hf-cache/
+
+# Local spam-image import drop folder
+discord-bot/spam-images/*
+!discord-bot/spam-images/.gitkeep

@@ -7,6 +7,7 @@ import { configureLogChannelCommand } from './commands/configureLogChannel.js';
 import { pingCommand } from './commands/ping.js';
 import { handleReviewButton } from './interactions/reviewButtons.js';
 import { startWebAdmin } from './webAdmin.js';
+import { importLocalSpamImages } from './services/localSpamImageImporter.js';
 import './repositories/database.js';
 
 if (!config.discordToken) throw new Error('DISCORD_TOKEN is required');
@@ -21,6 +22,7 @@ commands.set(pingCommand.data.name, pingCommand);
 client.once(Events.ClientReady, (readyClient) => {
   logger.info({ user: readyClient.user.tag }, 'bot ready');
   startWebAdmin(client);
+  void importLocalSpamImages(readyClient.user.id);
 });
 client.on(Events.MessageCreate, (message) => messageCreate.execute(message));
 client.on(Events.InteractionCreate, async (interaction) => {

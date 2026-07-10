@@ -215,7 +215,11 @@ Bot 起動中に `http://localhost:3000/dashboard/guilds` から Discord OAuth2 
 
 ## スパム画像管理画面
 
-AI Service 起動中に `http://localhost:8000/v1/admin/spam-images` を開くと、登録済みスパム画像を一覧表示できます。誤登録した画像は「削除」ボタンで無効化でき、無効化後は検知対象から外れます。画像ファイル自体は監査・復元用に保存されたままです。`ADMIN_WEB_TOKEN` を設定した場合は、初回アクセス時に `http://localhost:8000/v1/admin/spam-images?token=設定値` を開くことで管理 Cookie が発行され、以降の登録・編集・削除操作にも認証が必要になります。
+AI Service 起動中に `http://localhost:8000/v1/admin/spam-images` を開くと、登録済みスパム画像を一覧表示できます。Bot Web 管理画面では、`BOT_OWNER_USER_IDS` に含まれる BOT 運営者でログインした場合だけ、上部ナビゲーションにある「スパム画像管理」から同ページを開けます。誤登録した画像は「削除」ボタンで無効化でき、無効化後は検知対象から外れます。画像ファイル自体は監査・復元用に保存されたままです。`ADMIN_WEB_TOKEN` を設定した場合は、初回アクセス時に `http://localhost:8000/v1/admin/spam-images?token=設定値` を開くことで管理 Cookie が発行され、以降の登録・編集・削除操作にも認証が必要になります。
+
+## ローカルファイルからのスパム画像取り込み
+
+`discord-bot/.env` の `SPAM_IMAGE_IMPORT_DIR` に指定したフォルダ（既定値: `./spam-images`）へ `.png` / `.jpg` / `.jpeg` / `.webp` / `.gif` を置いて Bot を起動すると、起動時に AI Service へスパム画像として自動登録します。既に登録済みの画像は AI Service 側で重複扱いになります。誤って通常画像を入れないよう、このフォルダはローカル管理用として扱ってください。
 
 ## 判定しきい値
 

@@ -25,6 +25,7 @@ export const config = {
   phashMaxDistance: numberFromEnv('PHASH_MAX_DISTANCE', 10),
   reviewDeleteOnMedium: process.env.REVIEW_DELETE_ON_MEDIUM === 'true',
   cacheTtlMs: numberFromEnv('CACHE_TTL_MS', 300_000),
+  spamImageImportDir: process.env.SPAM_IMAGE_IMPORT_DIR ?? './spam-images',
   falsePositiveReportChannelId: process.env.FALSE_POSITIVE_REPORT_CHANNEL_ID ?? '',
   adminWebPort: numberFromEnv('ADMIN_WEB_PORT', 3000),
   botOwnerUserIds: (process.env.BOT_OWNER_USER_IDS ?? '').split(',').map((id) => id.trim()).filter(Boolean),
