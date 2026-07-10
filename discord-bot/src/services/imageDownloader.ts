@@ -18,11 +18,11 @@ export const isProcessableImageAttachment = (attachment: Attachment): boolean =>
   return hasAllowedExtension && allowedMimePrefixes.some((prefix) => contentType.startsWith(prefix));
 };
 
-export const downloadImage = (attachment: Attachment): Promise<DownloadedImage> => limit(async () => {
+const downloadImageUrl = async (url: string, filename: string): Promise<DownloadedImage> => {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), config.downloadTimeoutMs);
   try {
-    const response = await request(attachment.url, { signal: controller.signal, maxRedirections: 0 });
+    const response = await request(url, { signal: controller.signal, maxRedirections: 2 });
     const contentType = String(response.headers['content-type'] ?? '');
     if (!allowedMimePrefixes.some((prefix) => contentType.startsWith(prefix))) throw new Error(`Unexpected content-type: ${contentType}`);
     const chunks: Buffer[] = [];
@@ -35,8 +35,18 @@ export const downloadImage = (attachment: Attachment): Promise<DownloadedImage> 
     }
     const buffer = Buffer.concat(chunks);
     await sharp(buffer, { limitInputPixels: 40_000_000 }).metadata();
-    return { buffer, contentType, filename: attachment.name ?? 'image' };
+    return { buffer, contentType, filename };
   } finally {
     clearTimeout(timeout);
+  }
+};
+
+export const downloadImage = (attachment: Attachment): Promise<DownloadedImage> => limit(async () => {
+  const filename = attachment.name ?? 'image';
+  try {
+    return await downloadImageUrl(attachment.url, filename);
+  } catch (error) {
+    if (!attachment.proxyURL || attachment.proxyURL === attachment.url) throw error;
+    return downloadImageUrl(attachment.proxyURL, filename);
   }
 });

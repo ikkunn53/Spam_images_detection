@@ -5,6 +5,7 @@ import { messageCreate } from './events/messageCreate.js';
 import { registerSpamImageCommand } from './commands/registerSpamImage.js';
 import { configureLogChannelCommand } from './commands/configureLogChannel.js';
 import { pingCommand } from './commands/ping.js';
+import { registerSpamMessageCommand } from './commands/registerSpamMessage.js';
 import { handleReviewButton } from './interactions/reviewButtons.js';
 import { startWebAdmin } from './webAdmin.js';
 import { importLocalSpamImages } from './services/localSpamImageImporter.js';
@@ -15,8 +16,9 @@ const intents = [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages];
 if (config.messageContentIntent) intents.push(GatewayIntentBits.MessageContent);
 else logger.warn('MESSAGE_CONTENT_INTENT=false のため、Discord から添付画像情報を受け取れず画像スパム検知は動作しません。');
 const client = new Client({ intents });
-const commands = new Collection<string, typeof registerSpamImageCommand | typeof configureLogChannelCommand | typeof pingCommand>();
+const commands = new Collection<string, typeof registerSpamImageCommand | typeof registerSpamMessageCommand | typeof configureLogChannelCommand | typeof pingCommand>();
 commands.set(registerSpamImageCommand.data.name, registerSpamImageCommand);
+commands.set(registerSpamMessageCommand.data.name, registerSpamMessageCommand);
 commands.set(configureLogChannelCommand.data.name, configureLogChannelCommand);
 commands.set(pingCommand.data.name, pingCommand);
 client.once(Events.ClientReady, (readyClient) => {
@@ -28,10 +30,16 @@ client.on(Events.MessageCreate, (message) => messageCreate.execute(message));
 client.on(Events.InteractionCreate, async (interaction) => {
   try {
     if (interaction.isButton() && await handleReviewButton(interaction)) return;
-    if (!interaction.isChatInputCommand()) return;
-    const command = commands.get(interaction.commandName);
-    if (command) await command.execute(interaction);
-    else await interaction.reply({ content: 'このコマンドは現在の Bot プロセスに登録されていません。Bot を再起動し、スラッシュコマンドを再デプロイしてください。', flags: MessageFlags.Ephemeral });
+    if (interaction.isChatInputCommand()) {
+      const command = commands.get(interaction.commandName);
+      if (command === registerSpamImageCommand || command === configureLogChannelCommand || command === pingCommand) await command.execute(interaction);
+      else await interaction.reply({ content: 'このコマンドは現在の Bot プロセスに登録されていません。Bot を再起動し、スラッシュコマンドを再デプロイしてください。', flags: MessageFlags.Ephemeral });
+      return;
+    }
+    if (interaction.isMessageContextMenuCommand()) {
+      if (interaction.commandName === registerSpamMessageCommand.data.name) await registerSpamMessageCommand.execute(interaction);
+      else await interaction.reply({ content: 'このコマンドは現在の Bot プロセスに登録されていません。Bot を再起動し、アプリコマンドを再デプロイしてください。', flags: MessageFlags.Ephemeral });
+    }
   } catch (error) {
     logger.error({ error }, 'interaction failed');
     if (interaction.isRepliable()) {
