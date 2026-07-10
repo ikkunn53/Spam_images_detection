@@ -22,6 +22,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
     if (!interaction.isChatInputCommand()) return;
     const command = commands.get(interaction.commandName);
     if (command) await command.execute(interaction);
+    else await interaction.reply({ content: 'このコマンドは現在の Bot プロセスに登録されていません。Bot を再起動し、スラッシュコマンドを再デプロイしてください。', flags: MessageFlags.Ephemeral });
   } catch (error) {
     logger.error({ error }, 'interaction failed');
     if (interaction.isRepliable()) {
