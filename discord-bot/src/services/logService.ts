@@ -1,7 +1,7 @@
 import { ActionRowBuilder, AttachmentBuilder, ButtonBuilder, ButtonStyle, ChannelType, EmbedBuilder, Message } from 'discord.js';
 import { AnalysisResult } from './aiClient.js';
 
-export const sendDetectionLog = async (message: Message, result: AnalysisResult, image: Buffer, detectionEventId: number, logChannelId?: string | null): Promise<void> => {
+export const sendDetectionLog = async (message: Message, result: AnalysisResult, image: Buffer, detectionEventId: number, logChannelId?: string | null, autoDeleted = false): Promise<void> => {
   if (!logChannelId) return;
   const channel = await message.client.channels.fetch(logChannelId).catch(() => null);
   if (!channel || channel.type !== ChannelType.GuildText) return;
@@ -13,6 +13,7 @@ export const sendDetectionLog = async (message: Message, result: AnalysisResult,
       { name: 'Channel', value: `${'name' in message.channel ? message.channel.name : 'unknown'} (${message.channelId})` },
       { name: 'User', value: `${message.author.tag} (${message.author.id})` },
       { name: '判定', value: `${result.confidence_level} / ${result.decision_method} / action=${result.action}` },
+      { name: '対応', value: result.action === 'delete' ? (autoDeleted ? '自動削除しました' : '削除判定ですが自動削除は無効です') : '管理者レビュー待ちです' },
       { name: '詳細', value: `sha=${result.sha256_match} pHash=${result.phash_distance ?? 'n/a'} AI=${result.ai_similarity ?? 'n/a'} match=${result.matched_spam_image_id ?? 'n/a'}` },
       { name: '本文', value: message.content?.slice(0, 1000) || '(なし)' }
     )
