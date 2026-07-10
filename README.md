@@ -209,7 +209,10 @@ Docker Compose でホスト側公開ポートを変える場合は、Compose 実
 
 ## スラッシュコマンド
 
-- `/register-spam-image image category notes`: 管理者専用。添付画像を AI Service へ送り、既知スパム画像として登録します。
+- `/register-spam-image image [category] [notes]`: 管理者専用。`image` だけ必須で、カテゴリと備考は任意です。添付画像を AI Service へ送り、既知スパム画像として登録します。
+- `/spam-log-channel set channel`: サーバーごとの画像スパム検知ログ送信先を設定します。
+- `/spam-log-channel show`: 現在の画像スパム検知ログ送信先を表示します。
+- `/spam-log-channel clear`: 画像スパム検知ログ送信先の設定を解除します。
 
 
 ## Windows startup scripts

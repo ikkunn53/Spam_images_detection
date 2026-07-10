@@ -26,7 +26,7 @@ export const messageCreate = {
         const shouldDelete = result.action === 'delete' && settings.auto_delete_enabled === 1;
         if (shouldDelete) await message.delete().catch((error) => logger.warn({ error, messageId: message.id }, 'failed to delete message'));
         const eventId = detections.create({ guild_id: message.guildId, channel_id: message.channelId, message_id: message.id, user_id: message.author.id, sha256: digest, decision_method: result.decision_method, confidence_level: result.confidence_level, phash_distance: result.phash_distance, ai_similarity: result.ai_similarity, matched_spam_image_id: result.matched_spam_image_id, final_decision: result.action, auto_deleted: shouldDelete ? 1 : 0, metadata_json: JSON.stringify({ attachmentId: attachment.id, filename: image.filename, error: result.error }) });
-        if (result.action !== 'allow') await sendDetectionLog(message, result, image.buffer, eventId, settings.log_channel_id);
+        if (result.action !== 'allow') await sendDetectionLog(message, result, image.buffer, eventId, settings.log_channel_id, shouldDelete);
       } catch (error) {
         logger.error({ error, messageId: message.id, attachmentId: attachment.id }, 'image processing failed');
       }
