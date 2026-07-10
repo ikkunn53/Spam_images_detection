@@ -24,9 +24,24 @@ export const messageCreate = {
         const digest = sha256(image.buffer);
         const result = await detectionService.analyze(image.buffer, image.filename, message.guildId, message.id, digest);
         const shouldDelete = result.action === 'delete' && settings.auto_delete_enabled === 1;
-        if (shouldDelete) await message.delete().catch((error) => logger.warn({ error, messageId: message.id }, 'failed to delete message'));
-        const eventId = detections.create({ guild_id: message.guildId, channel_id: message.channelId, message_id: message.id, user_id: message.author.id, sha256: digest, decision_method: result.decision_method, confidence_level: result.confidence_level, phash_distance: result.phash_distance, ai_similarity: result.ai_similarity, matched_spam_image_id: result.matched_spam_image_id, final_decision: result.action, auto_deleted: shouldDelete ? 1 : 0, metadata_json: JSON.stringify({ attachmentId: attachment.id, filename: image.filename, error: result.error }) });
-        if (result.action !== 'allow') await sendDetectionLog(message, result, image.buffer, eventId, settings.log_channel_id);
+        let autoDeleted = false;
+        let handling = result.action === 'review' ? '管理者レビュー待ちです' : '許可しました';
+        if (result.action === 'delete') {
+          if (shouldDelete) {
+            try {
+              await message.delete();
+              autoDeleted = true;
+              handling = '自動削除しました';
+            } catch (error) {
+              handling = '削除を試みましたが失敗しました。Bot の権限を確認してください。';
+              logger.warn({ error, messageId: message.id }, 'failed to delete message');
+            }
+          } else {
+            handling = '削除判定ですが自動削除は無効です';
+          }
+        }
+        const eventId = detections.create({ guild_id: message.guildId, channel_id: message.channelId, message_id: message.id, user_id: message.author.id, sha256: digest, decision_method: result.decision_method, confidence_level: result.confidence_level, phash_distance: result.phash_distance, ai_similarity: result.ai_similarity, matched_spam_image_id: result.matched_spam_image_id, final_decision: result.action, auto_deleted: autoDeleted ? 1 : 0, metadata_json: JSON.stringify({ attachmentId: attachment.id, filename: image.filename, error: result.error }) });
+        if (result.action !== 'allow') await sendDetectionLog(message, result, image.buffer, eventId, settings.log_channel_id, handling);
       } catch (error) {
         logger.error({ error, messageId: message.id, attachmentId: attachment.id }, 'image processing failed');
       }

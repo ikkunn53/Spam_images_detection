@@ -134,7 +134,8 @@ docker-compose.yml  Bot + AI Service 起動例
 ```bash
 cp discord-bot/.env.example discord-bot/.env
 cp ai-service/.env.example ai-service/.env
-# .env に DISCORD_TOKEN、CLIENT_ID、必要なら GUILD_ID と MESSAGE_CONTENT_INTENT を設定
+# .env に DISCORD_TOKEN、CLIENT_ID、必要なら GUILD_ID を設定
+# 画像検知には MESSAGE_CONTENT_INTENT=true と Discord Developer Portal 側の有効化が必要
 ```
 
 ### Discord Developer Portal
@@ -147,7 +148,7 @@ cp ai-service/.env.example ai-service/.env
 - Gateway Intent:
   - `Guilds`
   - `GuildMessages`
-  - `MessageContent`: `MESSAGE_CONTENT_INTENT=true` にした場合のみ Bot が要求します。Discord Developer Portal 側で Message Content Intent を有効化していない状態で要求すると `Used disallowed intents` で起動に失敗します。添付画像や本文ログを安定して扱うには有効化を推奨しますが、大規模サーバーでは Privileged Intent 審査が必要になる可能性があります。
+  - `MessageContent`: 画像添付を検知するために必要です。既定では Bot が要求します（無効化する場合のみ `MESSAGE_CONTENT_INTENT=false`）。Discord Developer Portal 側で Message Content Intent を有効化していない状態で要求すると `Used disallowed intents` で起動に失敗します。大規模サーバーでは Privileged Intent 審査が必要になる可能性があります。
 - 必要権限:
   - View Channels
   - Read Message History
@@ -209,7 +210,10 @@ Docker Compose でホスト側公開ポートを変える場合は、Compose 実
 
 ## スラッシュコマンド
 
-- `/register-spam-image image category notes`: 管理者専用。添付画像を AI Service へ送り、既知スパム画像として登録します。
+- `/register-spam-image image [category] [notes]`: 管理者専用。`image` だけ必須で、カテゴリと備考は任意です。添付画像を AI Service へ送り、既知スパム画像として登録します。
+- `/spam-log-channel set channel`: サーバーごとの画像スパム検知ログ送信先を設定します。
+- `/spam-log-channel show`: 現在の画像スパム検知ログ送信先を表示します。
+- `/spam-log-channel clear`: 画像スパム検知ログ送信先の設定を解除します。
 
 
 ## Windows startup scripts
