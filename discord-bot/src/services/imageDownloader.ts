@@ -15,7 +15,9 @@ export const isProcessableImageAttachment = (attachment: Attachment): boolean =>
   const name = attachment.name?.toLowerCase() ?? '';
   const hasAllowedExtension = [...allowedExtensions].some((ext) => name.endsWith(ext));
   const contentType = attachment.contentType ?? '';
-  return hasAllowedExtension && (contentType === '' || allowedMimePrefixes.some((prefix) => contentType.startsWith(prefix)));
+  const hasAllowedContentType = allowedMimePrefixes.some((prefix) => contentType.startsWith(prefix));
+  const hasImageDimensions = attachment.width !== null || attachment.height !== null;
+  return hasAllowedExtension || hasAllowedContentType || hasImageDimensions;
 };
 
 const fetchImageUrl = async (url: string, filename: string): Promise<DownloadedImage> => {
