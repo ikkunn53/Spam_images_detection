@@ -80,8 +80,8 @@ export const registerSpamMessageCommand = {
     const failures: string[] = [];
     for (const target of targets) {
       try {
-        const registered = await target.register();
-        successes.push(`${target.label}: sha256=${registered.digest}`);
+        await target.register();
+        successes.push(target.label);
       } catch (error) {
         logger.warn({ error, guildId: interaction.guildId, messageId: message.id, targetKind: target.kind, targetId: target.id }, 'failed to register message image as spam image');
         failures.push(target.label);
@@ -89,9 +89,10 @@ export const registerSpamMessageCommand = {
     }
 
     if (failures.length === 0) {
-      await interaction.editReply(targets.length === 1 ? '登録できました！' : `${successes.length}枚の画像を登録できました！`);
+      await message.delete().catch((error) => logger.warn({ error, guildId: interaction.guildId, messageId: message.id }, 'failed to delete message after context spam registration'));
+      await interaction.editReply('スパム画像として登録完了しました！');
       return;
     }
-    await interaction.editReply(`登録できました: ${successes.length}枚 / 失敗: ${failures.length}枚`);
+    await interaction.editReply(`スパム画像として登録完了しました: ${successes.length}枚 / 失敗: ${failures.length}枚`);
   }
 };

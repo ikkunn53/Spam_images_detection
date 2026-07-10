@@ -16,8 +16,8 @@ export const registerSpamImageCommand = {
     }
     await interaction.deferReply({ flags: MessageFlags.Ephemeral });
     try {
-      const result = await registerSpamImageAttachment(attachment, { guild_id: interaction.guildId ?? '', registered_by_user_id: interaction.user.id, category: interaction.options.getString('category') ?? '', notes: interaction.options.getString('notes') ?? '' });
-      await interaction.editReply(`登録しました: ${JSON.stringify(result.aiResult)}\nBot保存先: ${result.localPath}`);
+      await registerSpamImageAttachment(attachment, { guild_id: interaction.guildId ?? '', registered_by_user_id: interaction.user.id, category: interaction.options.getString('category') ?? '', notes: interaction.options.getString('notes') ?? '' });
+      await interaction.editReply('スパム画像として登録完了しました！');
     } catch (error) {
       logger.error({ error, guildId: interaction.guildId, userId: interaction.user.id }, 'failed to register spam image');
       await interaction.editReply('スパム画像登録に失敗しました。AI Service が起動しているか確認してください。Windows なら `startup\\start-bot.bat` で AI Service と Bot の両方を起動してください。');

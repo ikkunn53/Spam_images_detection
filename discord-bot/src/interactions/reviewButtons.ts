@@ -41,7 +41,7 @@ const registerEvidenceImage = async (interaction: ButtonInteraction, event: Dete
     if (attachment) {
       const result = await registerSpamImageAttachment(attachment, fields);
       logger.info({ detectionEventId: event.id, actorUserId: interaction.user.id, attachmentId: attachment.id, filename: attachment.name, contentType: attachment.contentType, result: result.aiResult, localPath: result.localPath }, 'review evidence attachment registered as spam');
-      return { registered: true, message: `スパム画像として登録しました: ${JSON.stringify(result.aiResult)}\nBot保存先: ${result.localPath}` };
+      return { registered: true, message: 'スパム画像として登録完了しました！' };
     }
 
     for (const [index, embed] of message.embeds.entries()) {
@@ -49,7 +49,7 @@ const registerEvidenceImage = async (interaction: ButtonInteraction, event: Dete
       if (!imageUrl) continue;
       const result = await registerSpamImageUrl(imageUrl, `review-evidence-${event.id}-${index + 1}.png`, fields);
       logger.info({ detectionEventId: event.id, actorUserId: interaction.user.id, embedIndex: index, imageUrl, result: result.aiResult, localPath: result.localPath }, 'review evidence embed image registered as spam');
-      return { registered: true, message: `スパム画像として登録しました: ${JSON.stringify(result.aiResult)}\nBot保存先: ${result.localPath}` };
+      return { registered: true, message: 'スパム画像として登録完了しました！' };
     }
 
     return { registered: false, message: `ログ添付画像を登録用画像として取得できませんでした。attachments=${message.attachments.size}, embeds=${message.embeds.length}` };
@@ -92,6 +92,8 @@ const sendFalsePositiveReport = async (interaction: ButtonInteraction, event: De
     return '誤検知報告の送信に失敗しました。';
   }
 };
+
+const registrationFollowUpText = (resultText: string): string => resultText.startsWith('スパム画像として登録完了しました！') ? 'スパム画像として登録完了しました！' : resultText;
 
 const handleFalsePositiveReportButton = async (interaction: ButtonInteraction): Promise<boolean> => {
   if (!interaction.customId.startsWith('fp_report:')) return false;
@@ -140,6 +142,8 @@ export const handleReviewButton = async (interaction: ButtonInteraction): Promis
   await interaction.message.edit({ embeds: reviewedEmbeds(interaction, action, resultText), components: [] });
   if (action === 'false_positive') {
     await interaction.followUp({ content: '誤検知として記録しました。追加で報告チャンネルへ報告しますか？', components: [falsePositiveReportButtons(detectionEventId)], flags: MessageFlags.Ephemeral });
+  } else if (action === 'register_spam_image') {
+    await interaction.followUp({ content: registrationFollowUpText(resultText), flags: MessageFlags.Ephemeral });
   } else {
     await interaction.followUp({ content: `処理済みとして記録しました: ${actionLabels[action] ?? action}\n${resultText}`, flags: MessageFlags.Ephemeral });
   }
