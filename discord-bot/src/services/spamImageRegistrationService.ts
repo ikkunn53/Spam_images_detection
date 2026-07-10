@@ -3,7 +3,7 @@ import path from 'node:path';
 import { Attachment } from 'discord.js';
 import { config } from '../config/env.js';
 import { sha256 } from './hashService.js';
-import { downloadImage, DownloadedImage } from './imageDownloader.js';
+import { downloadImage, downloadImageFromUrl, DownloadedImage } from './imageDownloader.js';
 import { AiClient } from './aiClient.js';
 
 const ai = new AiClient();
@@ -51,5 +51,10 @@ export const registerDownloadedSpamImage = async (image: DownloadedImage, fields
 
 export const registerSpamImageAttachment = async (attachment: Attachment, fields: SpamImageRegistrationFields): Promise<SpamImageRegistrationResult> => {
   const image = await downloadImage(attachment);
+  return registerDownloadedSpamImage(image, fields);
+};
+
+export const registerSpamImageUrl = async (url: string, filename: string, fields: SpamImageRegistrationFields): Promise<SpamImageRegistrationResult> => {
+  const image = await downloadImageFromUrl(url, filename);
   return registerDownloadedSpamImage(image, fields);
 };

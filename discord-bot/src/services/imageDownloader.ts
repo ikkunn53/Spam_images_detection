@@ -18,7 +18,7 @@ export const isProcessableImageAttachment = (attachment: Attachment): boolean =>
   return hasAllowedExtension && (contentType === '' || allowedMimePrefixes.some((prefix) => contentType.startsWith(prefix)));
 };
 
-const downloadImageUrl = async (url: string, filename: string): Promise<DownloadedImage> => {
+const fetchImageUrl = async (url: string, filename: string): Promise<DownloadedImage> => {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), config.downloadTimeoutMs);
   try {
@@ -44,9 +44,11 @@ const downloadImageUrl = async (url: string, filename: string): Promise<Download
 export const downloadImage = (attachment: Attachment): Promise<DownloadedImage> => limit(async () => {
   const filename = attachment.name ?? 'image';
   try {
-    return await downloadImageUrl(attachment.url, filename);
+    return await fetchImageUrl(attachment.url, filename);
   } catch (error) {
     if (!attachment.proxyURL || attachment.proxyURL === attachment.url) throw error;
-    return downloadImageUrl(attachment.proxyURL, filename);
+    return fetchImageUrl(attachment.proxyURL, filename);
   }
 });
+
+export const downloadImageFromUrl = (url: string, filename = 'image'): Promise<DownloadedImage> => limit(() => fetchImageUrl(url, filename));
