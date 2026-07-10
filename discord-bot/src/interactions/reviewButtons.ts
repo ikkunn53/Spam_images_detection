@@ -1,12 +1,11 @@
 import { ActionRowBuilder, ButtonBuilder, ButtonInteraction, ButtonStyle, ChannelType, EmbedBuilder, MessageFlags, PermissionFlagsBits } from 'discord.js';
 import { config } from '../config/env.js';
 import { DetectionRepository, DetectionEvent } from '../repositories/detectionRepository.js';
-import { AiClient } from '../services/aiClient.js';
-import { downloadImage } from '../services/imageDownloader.js';
+import { isProcessableImageAttachment } from '../services/imageDownloader.js';
+import { registerSpamImageAttachment, registerSpamImageUrl } from '../services/spamImageRegistrationService.js';
 import { logger } from '../utils/logger.js';
 
 const detections = new DetectionRepository();
-const ai = new AiClient();
 const actionMap: Record<string, string> = { confirm: 'spam_confirmed', false_positive: 'false_positive', register: 'register_spam_image' };
 const actionLabels: Record<string, string> = { spam_confirmed: 'スパム確定', false_positive: '誤検知', register_spam_image: 'スパムとして登録' };
 
@@ -30,21 +29,33 @@ const deleteDetectedMessage = async (interaction: ButtonInteraction, event: Dete
 };
 
 const registerEvidenceImage = async (interaction: ButtonInteraction, event: DetectionEvent): Promise<{ registered: boolean; message: string }> => {
-  const attachment = interaction.message.attachments.find((item) => /\.(png|jpe?g|webp|gif)$/i.test(item.name ?? '')) ?? interaction.message.attachments.first();
-  if (!attachment) return { registered: false, message: 'ログ添付画像を登録用画像として取得できませんでした。' };
+  const message = await interaction.message.fetch().catch(() => interaction.message);
+  const attachment = [...message.attachments.values()].find(isProcessableImageAttachment);
+  const fields = {
+    guild_id: event.guild_id,
+    registered_by_user_id: interaction.user.id,
+    category: 'review_button',
+    notes: `registered from detection_event_id=${event.id}`
+  };
   try {
-    const image = await downloadImage(attachment);
-    const result = await ai.registerSpamImage(image.buffer, image.filename, {
-      guild_id: event.guild_id,
-      registered_by_user_id: interaction.user.id,
-      category: 'review_button',
-      notes: `registered from detection_event_id=${event.id}`
-    });
-    logger.info({ detectionEventId: event.id, actorUserId: interaction.user.id, attachmentId: attachment.id, filename: attachment.name, contentType: attachment.contentType, result }, 'review evidence image registered as spam');
-    return { registered: true, message: `スパム画像として登録しました: ${JSON.stringify(result)}` };
+    if (attachment) {
+      const result = await registerSpamImageAttachment(attachment, fields);
+      logger.info({ detectionEventId: event.id, actorUserId: interaction.user.id, attachmentId: attachment.id, filename: attachment.name, contentType: attachment.contentType, result: result.aiResult, localPath: result.localPath }, 'review evidence attachment registered as spam');
+      return { registered: true, message: 'スパム画像として登録完了しました！' };
+    }
+
+    for (const [index, embed] of message.embeds.entries()) {
+      const imageUrl = embed.image?.url ?? embed.thumbnail?.url;
+      if (!imageUrl) continue;
+      const result = await registerSpamImageUrl(imageUrl, `review-evidence-${event.id}-${index + 1}.png`, fields);
+      logger.info({ detectionEventId: event.id, actorUserId: interaction.user.id, embedIndex: index, imageUrl, result: result.aiResult, localPath: result.localPath }, 'review evidence embed image registered as spam');
+      return { registered: true, message: 'スパム画像として登録完了しました！' };
+    }
+
+    return { registered: false, message: `ログ添付画像を登録用画像として取得できませんでした。attachments=${message.attachments.size}, embeds=${message.embeds.length}` };
   } catch (error) {
-    logger.warn({ error, detectionEventId: event.id, actorUserId: interaction.user.id, attachmentId: attachment.id, filename: attachment.name, contentType: attachment.contentType }, 'failed to register review evidence image');
-    return { registered: false, message: 'スパム画像登録に失敗しました。AI Service の状態を確認してください。' };
+    logger.warn({ error, detectionEventId: event.id, actorUserId: interaction.user.id }, 'failed to register review evidence image');
+    return { registered: false, message: 'スパム画像登録に失敗しました。画像の取得または AI Service の状態を確認してください。' };
   }
 };
 
@@ -81,6 +92,8 @@ const sendFalsePositiveReport = async (interaction: ButtonInteraction, event: De
     return '誤検知報告の送信に失敗しました。';
   }
 };
+
+const registrationFollowUpText = (resultText: string): string => resultText.startsWith('スパム画像として登録完了しました！') ? 'スパム画像として登録完了しました！' : resultText;
 
 const handleFalsePositiveReportButton = async (interaction: ButtonInteraction): Promise<boolean> => {
   if (!interaction.customId.startsWith('fp_report:')) return false;
@@ -129,6 +142,8 @@ export const handleReviewButton = async (interaction: ButtonInteraction): Promis
   await interaction.message.edit({ embeds: reviewedEmbeds(interaction, action, resultText), components: [] });
   if (action === 'false_positive') {
     await interaction.followUp({ content: '誤検知として記録しました。追加で報告チャンネルへ報告しますか？', components: [falsePositiveReportButtons(detectionEventId)], flags: MessageFlags.Ephemeral });
+  } else if (action === 'register_spam_image') {
+    await interaction.followUp({ content: registrationFollowUpText(resultText), flags: MessageFlags.Ephemeral });
   } else {
     await interaction.followUp({ content: `処理済みとして記録しました: ${actionLabels[action] ?? action}\n${resultText}`, flags: MessageFlags.Ephemeral });
   }
