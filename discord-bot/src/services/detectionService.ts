@@ -17,7 +17,7 @@ export class DetectionService {
     }
     const ai = await this.aiClient.analyze(buffer, filename, { guild_id: guildId, message_id: messageId, sha256: sha });
     if (ai) {
-      this.cache.set(sha, ai);
+      if (ai.action !== 'allow') this.cache.set(sha, ai);
       return ai;
     }
     return { is_spam: false, action: 'review', confidence_level: 'medium', decision_method: 'fallback_ai_unavailable', sha256_match: false, phash_distance: null, ai_similarity: null, matched_spam_image_id: null, error: 'AI service unavailable; no auto delete performed' };

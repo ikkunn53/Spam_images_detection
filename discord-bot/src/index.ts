@@ -3,16 +3,27 @@ import { config } from './config/env.js';
 import { logger } from './utils/logger.js';
 import { messageCreate } from './events/messageCreate.js';
 import { registerSpamImageCommand } from './commands/registerSpamImage.js';
+import { configureLogChannelCommand } from './commands/configureLogChannel.js';
+import { pingCommand } from './commands/ping.js';
 import { handleReviewButton } from './interactions/reviewButtons.js';
+import { startWebAdmin } from './webAdmin.js';
+import { importLocalSpamImages } from './services/localSpamImageImporter.js';
 import './repositories/database.js';
 
 if (!config.discordToken) throw new Error('DISCORD_TOKEN is required');
 const intents = [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages];
 if (config.messageContentIntent) intents.push(GatewayIntentBits.MessageContent);
+else logger.warn('MESSAGE_CONTENT_INTENT=false のため、Discord から添付画像情報を受け取れず画像スパム検知は動作しません。');
 const client = new Client({ intents });
-const commands = new Collection<string, typeof registerSpamImageCommand>();
+const commands = new Collection<string, typeof registerSpamImageCommand | typeof configureLogChannelCommand | typeof pingCommand>();
 commands.set(registerSpamImageCommand.data.name, registerSpamImageCommand);
-client.once(Events.ClientReady, (readyClient) => logger.info({ user: readyClient.user.tag }, 'bot ready'));
+commands.set(configureLogChannelCommand.data.name, configureLogChannelCommand);
+commands.set(pingCommand.data.name, pingCommand);
+client.once(Events.ClientReady, (readyClient) => {
+  logger.info({ user: readyClient.user.tag }, 'bot ready');
+  startWebAdmin(client);
+  void importLocalSpamImages(readyClient.user.id);
+});
 client.on(Events.MessageCreate, (message) => messageCreate.execute(message));
 client.on(Events.InteractionCreate, async (interaction) => {
   try {
@@ -20,6 +31,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
     if (!interaction.isChatInputCommand()) return;
     const command = commands.get(interaction.commandName);
     if (command) await command.execute(interaction);
+    else await interaction.reply({ content: 'このコマンドは現在の Bot プロセスに登録されていません。Bot を再起動し、スラッシュコマンドを再デプロイしてください。', flags: MessageFlags.Ephemeral });
   } catch (error) {
     logger.error({ error }, 'interaction failed');
     if (interaction.isRepliable()) {
