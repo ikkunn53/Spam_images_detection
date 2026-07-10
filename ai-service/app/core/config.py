@@ -6,8 +6,9 @@ class Settings(BaseSettings):
     max_image_size_mb: int = 8
     spam_auto_delete_threshold: float = 0.97
     spam_review_threshold: float = 0.90
-    phash_max_distance: int = 6
+    phash_max_distance: int = 10
     dinov2_model_name: str = 'facebook/dinov2-small'
     ai_worker_concurrency: int = 1
     ai_service_port: int = 8000
+    admin_web_token: str = ''
 settings = Settings()
