@@ -16,7 +16,7 @@ export const config = {
   aiServiceUrl: process.env.AI_SERVICE_URL ?? 'http://localhost:8000',
   aiHeadersTimeoutMs: numberFromEnv('AI_HEADERS_TIMEOUT_MS', 180_000),
   aiBodyTimeoutMs: numberFromEnv('AI_BODY_TIMEOUT_MS', 300_000),
-  messageContentIntent: process.env.MESSAGE_CONTENT_INTENT === 'true',
+  messageContentIntent: process.env.MESSAGE_CONTENT_INTENT !== 'false',
   maxImageSizeBytes: numberFromEnv('MAX_IMAGE_SIZE_MB', 8) * 1024 * 1024,
   downloadTimeoutMs: numberFromEnv('DOWNLOAD_TIMEOUT_MS', 8000),
   downloadConcurrency: numberFromEnv('DOWNLOAD_CONCURRENCY', 4),

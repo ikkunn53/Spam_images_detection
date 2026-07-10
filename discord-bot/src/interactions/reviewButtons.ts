@@ -18,6 +18,7 @@ export const handleReviewButton = async (interaction: ButtonInteraction): Promis
     return true;
   }
   detections.addModerationAction(detectionEventId, action, interaction.user.id);
-  await interaction.reply({ content: `監査ログへ記録しました: ${action}`, flags: MessageFlags.Ephemeral });
+  await interaction.update({ components: [] });
+  await interaction.followUp({ content: `処理済みとして記録しました: ${action}`, flags: MessageFlags.Ephemeral });
   return true;
 };
