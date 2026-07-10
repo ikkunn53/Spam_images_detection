@@ -28,3 +28,8 @@ class SpamImageRepository:
         cur = conn.execute('UPDATE spam_images SET category = ?, notes = ? WHERE id = ?', (category, notes, spam_image_id))
         conn.commit()
         return cur.rowcount > 0
+
+    def delete(self, spam_image_id: int) -> bool:
+        cur = conn.execute('DELETE FROM spam_images WHERE id = ?', (spam_image_id,))
+        conn.commit()
+        return cur.rowcount > 0
