@@ -10,6 +10,7 @@ import './repositories/database.js';
 if (!config.discordToken) throw new Error('DISCORD_TOKEN is required');
 const intents = [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages];
 if (config.messageContentIntent) intents.push(GatewayIntentBits.MessageContent);
+else logger.warn('MESSAGE_CONTENT_INTENT=false のため、Discord から添付画像情報を受け取れず画像スパム検知は動作しません。');
 const client = new Client({ intents });
 const commands = new Collection<string, typeof registerSpamImageCommand | typeof configureLogChannelCommand>();
 commands.set(registerSpamImageCommand.data.name, registerSpamImageCommand);
