@@ -15,7 +15,7 @@ export const isProcessableImageAttachment = (attachment: Attachment): boolean =>
   const name = attachment.name?.toLowerCase() ?? '';
   const hasAllowedExtension = [...allowedExtensions].some((ext) => name.endsWith(ext));
   const contentType = attachment.contentType ?? '';
-  return hasAllowedExtension && allowedMimePrefixes.some((prefix) => contentType.startsWith(prefix));
+  return hasAllowedExtension && (contentType === '' || allowedMimePrefixes.some((prefix) => contentType.startsWith(prefix)));
 };
 
 const downloadImageUrl = async (url: string, filename: string): Promise<DownloadedImage> => {
