@@ -1,8 +1,12 @@
 import { ApplicationCommandType, ContextMenuCommandBuilder, Message, MessageContextMenuCommandInteraction, MessageFlags, PermissionFlagsBits } from 'discord.js';
 import path from 'node:path';
+import { GuildSettingsRepository } from '../repositories/guildSettingsRepository.js';
 import { isProcessableImageAttachment } from '../services/imageDownloader.js';
 import { registerSpamImageAttachment, registerSpamImageUrl, SpamImageRegistrationResult } from '../services/spamImageRegistrationService.js';
+import { sendSpamImageRegistrationLog } from '../services/logService.js';
 import { logger } from '../utils/logger.js';
+
+const guildSettings = new GuildSettingsRepository();
 
 type RegistrationTarget =
   | { kind: 'attachment'; id: string; label: string; register: () => Promise<SpamImageRegistrationResult> }
@@ -80,8 +84,22 @@ export const registerSpamMessageCommand = {
     const failures: string[] = [];
     for (const target of targets) {
       try {
-        await target.register();
+        const result = await target.register();
         successes.push(target.label);
+        const settings = interaction.guildId ? guildSettings.get(interaction.guildId) : undefined;
+        await sendSpamImageRegistrationLog({
+          client: interaction.client,
+          guildName: interaction.guild?.name,
+          guildId: interaction.guildId,
+          channelId: interaction.channelId,
+          registeredByUserId: interaction.user.id,
+          image: result.image.buffer,
+          filename: result.image.filename,
+          digest: result.digest,
+          spamImageId: result.spamImageId,
+          source: 'message context menu',
+          guildLogChannelId: settings?.log_channel_id
+        });
       } catch (error) {
         logger.warn({ error, guildId: interaction.guildId, messageId: message.id, targetKind: target.kind, targetId: target.id }, 'failed to register message image as spam image');
         failures.push(target.label);

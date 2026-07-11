@@ -1,11 +1,14 @@
 import { ActionRowBuilder, ButtonBuilder, ButtonInteraction, ButtonStyle, ChannelType, EmbedBuilder, MessageFlags, PermissionFlagsBits } from 'discord.js';
 import { config } from '../config/env.js';
 import { DetectionRepository, DetectionEvent } from '../repositories/detectionRepository.js';
+import { GuildSettingsRepository } from '../repositories/guildSettingsRepository.js';
 import { isProcessableImageAttachment } from '../services/imageDownloader.js';
+import { sendSpamImageRegistrationLog } from '../services/logService.js';
 import { registerSpamImageAttachment, registerSpamImageUrl } from '../services/spamImageRegistrationService.js';
 import { logger } from '../utils/logger.js';
 
 const detections = new DetectionRepository();
+const guildSettings = new GuildSettingsRepository();
 const actionMap: Record<string, string> = { confirm: 'spam_confirmed', false_positive: 'false_positive', register: 'register_spam_image' };
 const actionLabels: Record<string, string> = { spam_confirmed: 'スパム確定', false_positive: '誤検知', register_spam_image: 'スパムとして登録' };
 
@@ -54,6 +57,20 @@ const registerEvidenceImage = async (interaction: ButtonInteraction, event: Dete
   try {
     if (attachment) {
       const result = await registerSpamImageAttachment(attachment, fields);
+      const settings = guildSettings.get(event.guild_id);
+      await sendSpamImageRegistrationLog({
+        client: interaction.client,
+        guildName: interaction.guild?.name,
+        guildId: event.guild_id,
+        channelId: event.channel_id,
+        registeredByUserId: interaction.user.id,
+        image: result.image.buffer,
+        filename: result.image.filename,
+        digest: result.digest,
+        spamImageId: result.spamImageId,
+        source: 'review button',
+        guildLogChannelId: settings.log_channel_id
+      });
       logger.info({ detectionEventId: event.id, actorUserId: interaction.user.id, attachmentId: attachment.id, filename: attachment.name, contentType: attachment.contentType, result: result.aiResult, localPath: result.localPath }, 'review evidence attachment registered as spam');
       return { registered: true, message: 'スパム画像として登録完了しました！' };
     }
@@ -62,6 +79,20 @@ const registerEvidenceImage = async (interaction: ButtonInteraction, event: Dete
       const imageUrl = embed.image?.url ?? embed.thumbnail?.url;
       if (!imageUrl) continue;
       const result = await registerSpamImageUrl(imageUrl, `review-evidence-${event.id}-${index + 1}.png`, fields);
+      const settings = guildSettings.get(event.guild_id);
+      await sendSpamImageRegistrationLog({
+        client: interaction.client,
+        guildName: interaction.guild?.name,
+        guildId: event.guild_id,
+        channelId: event.channel_id,
+        registeredByUserId: interaction.user.id,
+        image: result.image.buffer,
+        filename: result.image.filename,
+        digest: result.digest,
+        spamImageId: result.spamImageId,
+        source: 'review button',
+        guildLogChannelId: settings.log_channel_id
+      });
       logger.info({ detectionEventId: event.id, actorUserId: interaction.user.id, embedIndex: index, imageUrl, result: result.aiResult, localPath: result.localPath }, 'review evidence embed image registered as spam');
       return { registered: true, message: 'スパム画像として登録完了しました！' };
     }
