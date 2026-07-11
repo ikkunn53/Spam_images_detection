@@ -9,6 +9,20 @@ const detections = new DetectionRepository();
 const actionMap: Record<string, string> = { confirm: 'spam_confirmed', false_positive: 'false_positive', register: 'register_spam_image' };
 const actionLabels: Record<string, string> = { spam_confirmed: 'スパム確定', false_positive: '誤検知', register_spam_image: 'スパムとして登録' };
 
+
+const detectionMetadata = (event: DetectionEvent): Record<string, unknown> => {
+  if (!event.metadata_json) return {};
+  try {
+    const parsed = JSON.parse(event.metadata_json) as unknown;
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed as Record<string, unknown> : {};
+  } catch {
+    return {};
+  }
+};
+
+const stringValue = (value: unknown): string | null => typeof value === 'string' && value.length > 0 ? value : null;
+const numberValue = (value: unknown): string | null => typeof value === 'number' && Number.isFinite(value) ? String(value) : null;
+
 const falsePositiveReportButtons = (detectionEventId: number) => new ActionRowBuilder<ButtonBuilder>().addComponents(
   new ButtonBuilder().setCustomId(`fp_report:yes:${detectionEventId}`).setLabel('報告する').setStyle(ButtonStyle.Primary),
   new ButtonBuilder().setCustomId(`fp_report:no:${detectionEventId}`).setLabel('報告しない').setStyle(ButtonStyle.Secondary)
@@ -74,6 +88,10 @@ const sendFalsePositiveReport = async (interaction: ButtonInteraction, event: De
   try {
     const channel = await interaction.client.channels.fetch(config.falsePositiveReportChannelId);
     if (!channel || channel.type !== ChannelType.GuildText) return '誤検知報告チャンネルが見つからないか、テキストチャンネルではありません。';
+    const metadata = detectionMetadata(event);
+    const matchedSpamImageId = numberValue(metadata.matchedSpamImageId) ?? stringValue(metadata.matchedSpamImageId);
+    const matchedSpamImageSha256 = stringValue(metadata.matchedSpamImageSha256);
+    const matchedSpamImagePhash = stringValue(metadata.matchedSpamImagePhash);
     const embed = new EmbedBuilder()
       .setTitle('画像スパム誤検知報告')
       .addFields(
@@ -81,7 +99,11 @@ const sendFalsePositiveReport = async (interaction: ButtonInteraction, event: De
         { name: 'Guild', value: event.guild_id, inline: true },
         { name: 'Channel', value: event.channel_id, inline: true },
         { name: 'Message', value: event.message_id, inline: true },
-        { name: 'SHA-256', value: event.sha256 ?? 'n/a' },
+        { name: '投稿画像SHA-256', value: event.sha256 ?? 'n/a' },
+        { name: '検知元スパム画像ID', value: matchedSpamImageId ?? 'n/a', inline: true },
+        { name: '検知元スパム画像SHA-256', value: matchedSpamImageSha256 ?? 'n/a' },
+        { name: '検知元スパム画像pHash', value: matchedSpamImagePhash ?? 'n/a' },
+        { name: '検知元詳細', value: `filename=${stringValue(metadata.filename) ?? 'n/a'} attachmentId=${stringValue(metadata.attachmentId) ?? 'n/a'}`.slice(0, 1024) },
         { name: '報告者', value: `${interaction.user.tag} (${interaction.user.id})` }
       )
       .setTimestamp(new Date());
