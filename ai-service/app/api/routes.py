@@ -56,6 +56,7 @@ def require_admin(request: Request) -> None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail='admin token required')
 
 def admin_spam_image_row(row: dict) -> str:
+    search_text = ' '.join(str(row.get(key) or '') for key in ['id', 'guild_id', 'sha256', 'phash', 'category', 'notes', 'registered_by_user_id', 'created_at', 'active'])
     status_label = '有効' if row.get('active') == 1 else '削除済み'
     delete_form = f'''
       <form method="post" action="/v1/admin/spam-images/{row['id']}/delete" onsubmit="return confirm('このスパム画像を無効化しますか？DBデータと画像ファイルは残ります。');">
@@ -65,7 +66,7 @@ def admin_spam_image_row(row: dict) -> str:
         <button class="danger permanent" type="submit">DBも完全削除</button>
       </form>'''
     return f'''
-      <tr>
+      <tr data-search="{escape(search_text.lower(), quote=True)}">
         <td><img src="/v1/spam-images/{row['id']}/image" alt="spam image {row['id']}" loading="lazy"></td>
         <td>{row['id']}</td>
         <td>{escape(row.get('guild_id') or '')}</td>
@@ -168,6 +169,10 @@ def admin_spam_images(request: Request):
     th {{ background: linear-gradient(135deg, rgba(79,70,229,.14), rgba(6,182,212,.10)); color: var(--muted); font-size: .82rem; letter-spacing: .06em; text-transform: uppercase; }}
     tr:hover td {{ background: rgba(79,70,229,.05); }}
     img {{ width: 160px; height: 120px; object-fit: contain; border-radius: 18px; background: var(--card-strong); box-shadow: 0 14px 30px rgba(15,23,42,.14); }}
+    .filters {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin: 22px 0; padding: 18px; border: 1px solid var(--line); border-radius: 22px; background: var(--card); box-shadow: var(--shadow); }}
+    .filters label {{ display: grid; gap: 6px; color: var(--muted); font-weight: 800; font-size: .82rem; letter-spacing: .04em; text-transform: uppercase; }}
+    .filters input {{ width: 100%; }}
+    .search-empty td {{ text-align: center; color: var(--muted); font-weight: 800; }}
     input {{ min-width: 160px; border: 1px solid var(--line); border-radius: 14px; background: var(--card-strong); color: var(--fg); padding: 10px 12px; outline: none; }}
     input:focus {{ border-color: var(--primary); box-shadow: 0 0 0 4px rgba(79,70,229,.16); }}
     form {{ display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }}
@@ -180,7 +185,24 @@ def admin_spam_images(request: Request):
   </style>
   <script>
     function toggleTheme() {{ document.body.classList.toggle('dark'); localStorage.setItem('theme', document.body.classList.contains('dark') ? 'dark' : 'light'); }}
-    window.addEventListener('DOMContentLoaded', () => {{ if (localStorage.getItem('theme') === 'dark') document.body.classList.add('dark'); }});
+    function applySpamImageFilters() {{
+      const filters = ['image', 'id', 'guild'].map((name) => document.querySelector(`[data-filter=\"${{name}}\"]`).value.trim().toLowerCase());
+      let visible = 0;
+      document.querySelectorAll('tbody tr[data-search]').forEach((row) => {{
+        const cells = row.children;
+        const values = [row.dataset.search || '', cells[1]?.textContent.toLowerCase() || '', cells[2]?.textContent.toLowerCase() || ''];
+        const matched = filters.every((filter, index) => !filter || values[index].includes(filter));
+        row.hidden = !matched;
+        if (matched) visible += 1;
+      }});
+      const empty = document.querySelector('.search-empty');
+      if (empty) empty.hidden = visible !== 0;
+    }}
+    window.addEventListener('DOMContentLoaded', () => {{
+      if (localStorage.getItem('theme') === 'dark') document.body.classList.add('dark');
+      document.querySelectorAll('[data-filter]').forEach((input) => input.addEventListener('input', applySpamImageFilters));
+      applySpamImageFilters();
+    }});
   </script>
 </head>
 <body>
@@ -196,9 +218,14 @@ def admin_spam_images(request: Request):
     <input type="text" name="notes" placeholder="備考">
     <button type="submit">登録</button>
   </form>
+  <section class="filters" aria-label="登録済みスパム画像の検索">
+    <label>画像・全項目検索<input type="search" data-filter="image" placeholder="画像/SHA-256/pHash/カテゴリ/備考など"></label>
+    <label>ID検索<input type="search" data-filter="id" placeholder="スパム画像ID"></label>
+    <label>Guild検索<input type="search" data-filter="guild" placeholder="Guild ID"></label>
+  </section>
   <table>
     <thead><tr><th>画像</th><th>ID</th><th>Guild</th><th>SHA-256</th><th>pHash</th><th>カテゴリ</th><th>備考</th><th>登録者</th><th>登録日時</th><th>状態</th><th>操作</th></tr></thead>
-    <tbody>{body}</tbody>
+    <tbody>{body}<tr class="search-empty" hidden><td colspan="11">検索条件に一致する登録済みスパム画像はありません。</td></tr></tbody>
   </table>
 </body>
 </html>''')

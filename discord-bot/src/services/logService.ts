@@ -24,6 +24,10 @@ export const sendDetectionLog = async (message: Message, result: AnalysisResult,
   }
   const attachmentName = imagePreviewFilename(evidenceFilename);
   const embedTitle = result.action === 'delete' ? 'スパムを削除しました' : 'スパムの疑いあり';
+  const matchedImageFields = result.matched_spam_image_id === null ? [] : [
+    { name: '検知元スパム画像ID', value: String(result.matched_spam_image_id), inline: true },
+    { name: '検知元スパム画像SHA-256', value: result.matched_spam_image_sha256 ?? 'n/a' }
+  ];
   const embed = new EmbedBuilder()
     .setTitle(embedTitle)
     .setColor(result.action === 'delete' ? 0xff3333 : 0xffcc00)
@@ -33,7 +37,8 @@ export const sendDetectionLog = async (message: Message, result: AnalysisResult,
       { name: 'チャンネルID', value: message.channelId },
       { name: 'スパムを投稿したユーザー', value: `${message.author.tag} (${message.author.id})` },
       { name: '対応', value: handling ?? (result.action === 'delete' ? '削除判定です' : '管理者レビュー待ちです') },
-      { name: '本文', value: message.content?.slice(0, 1000) || '(なし)' }
+      { name: '本文', value: message.content?.slice(0, 1000) || '(なし)' },
+      ...matchedImageFields
     )
     .setImage(`attachment://${attachmentName}`)
     .setTimestamp(message.createdAt);

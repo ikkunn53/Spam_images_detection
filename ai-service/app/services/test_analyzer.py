@@ -39,6 +39,8 @@ def test_sha_match_deletes_without_embedding(monkeypatch):
     assert result['action'] == 'delete'
     assert result['decision_method'] == 'sha256'
     assert result['matched_spam_image_id'] == 10
+    assert result['matched_spam_image_sha256'] == 'posted-sha'
+    assert result['matched_spam_image_phash'] == 'other'
 
 def test_phash_match_deletes_without_embedding(monkeypatch):
     patch_common(monkeypatch)
@@ -53,3 +55,5 @@ def test_phash_match_deletes_without_embedding(monkeypatch):
     assert result['decision_method'] == 'phash'
     assert result['phash_distance'] == 2
     assert result['matched_spam_image_id'] == 20
+    assert result['matched_spam_image_sha256'] == 'different'
+    assert result['matched_spam_image_phash'] == 'known-phash'

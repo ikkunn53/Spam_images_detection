@@ -11,7 +11,7 @@ export class DetectionService {
     if (cached) return cached;
     const shaMatch = this.spamImages.findActiveBySha256(sha);
     if (shaMatch) {
-      const result: AnalysisResult = { is_spam: true, action: 'delete', confidence_level: 'high', decision_method: 'sha256', sha256_match: true, phash_distance: 0, ai_similarity: null, matched_spam_image_id: shaMatch.id };
+      const result: AnalysisResult = { is_spam: true, action: 'delete', confidence_level: 'high', decision_method: 'sha256', sha256_match: true, phash_distance: 0, ai_similarity: null, matched_spam_image_id: shaMatch.id, matched_spam_image_sha256: shaMatch.sha256, matched_spam_image_phash: shaMatch.phash ?? null };
       this.cache.set(sha, result);
       return result;
     }
@@ -20,6 +20,6 @@ export class DetectionService {
       if (ai.action !== 'allow') this.cache.set(sha, ai);
       return ai;
     }
-    return { is_spam: false, action: 'review', confidence_level: 'medium', decision_method: 'fallback_ai_unavailable', sha256_match: false, phash_distance: null, ai_similarity: null, matched_spam_image_id: null, error: 'AI service unavailable; no auto delete performed' };
+    return { is_spam: false, action: 'review', confidence_level: 'medium', decision_method: 'fallback_ai_unavailable', sha256_match: false, phash_distance: null, ai_similarity: null, matched_spam_image_id: null, matched_spam_image_sha256: null, matched_spam_image_phash: null, error: 'AI service unavailable; no auto delete performed' };
   }
 }
