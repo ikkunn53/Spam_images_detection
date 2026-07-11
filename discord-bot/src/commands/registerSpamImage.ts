@@ -1,7 +1,11 @@
 import { SlashCommandBuilder, ChatInputCommandInteraction, PermissionFlagsBits, MessageFlags } from 'discord.js';
 import { isProcessableImageAttachment } from '../services/imageDownloader.js';
+import { GuildSettingsRepository } from '../repositories/guildSettingsRepository.js';
+import { sendSpamImageRegistrationLog } from '../services/logService.js';
 import { registerSpamImageAttachment } from '../services/spamImageRegistrationService.js';
 import { logger } from '../utils/logger.js';
+
+const guildSettings = new GuildSettingsRepository();
 
 export const registerSpamImageCommand = {
   data: new SlashCommandBuilder().setName('register-spam-image').setDescription('添付画像を既知スパム画像として登録します').setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages)
@@ -16,7 +20,21 @@ export const registerSpamImageCommand = {
     }
     await interaction.deferReply({ flags: MessageFlags.Ephemeral });
     try {
-      await registerSpamImageAttachment(attachment, { guild_id: interaction.guildId ?? '', registered_by_user_id: interaction.user.id, category: interaction.options.getString('category') ?? '', notes: interaction.options.getString('notes') ?? '' });
+      const result = await registerSpamImageAttachment(attachment, { guild_id: interaction.guildId ?? '', registered_by_user_id: interaction.user.id, category: interaction.options.getString('category') ?? '', notes: interaction.options.getString('notes') ?? '' });
+      const settings = interaction.guildId ? guildSettings.get(interaction.guildId) : undefined;
+      await sendSpamImageRegistrationLog({
+        client: interaction.client,
+        guildName: interaction.guild?.name,
+        guildId: interaction.guildId,
+        channelId: interaction.channelId,
+        registeredByUserId: interaction.user.id,
+        image: result.image.buffer,
+        filename: result.image.filename,
+        digest: result.digest,
+        spamImageId: result.spamImageId,
+        source: '/register-spam-image',
+        guildLogChannelId: settings?.log_channel_id
+      });
       await interaction.editReply('スパム画像として登録完了しました！');
     } catch (error) {
       logger.error({ error, guildId: interaction.guildId, userId: interaction.user.id }, 'failed to register spam image');
