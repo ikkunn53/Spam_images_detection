@@ -25,6 +25,13 @@ export type SpamImageRegistrationResult = {
   localPath: string;
   aiResult: unknown;
   image: DownloadedImage;
+  spamImageId?: number | null;
+};
+
+const spamImageIdFromAiResult = (value: unknown): number | null => {
+  if (!value || typeof value !== 'object' || !('spam_image_id' in value)) return null;
+  const id = (value as { spam_image_id?: unknown }).spam_image_id;
+  return typeof id === 'number' && Number.isFinite(id) ? id : null;
 };
 
 export const saveSpamImageToBotFolder = async (buffer: Buffer, filename: string): Promise<{ digest: string; localPath: string }> => {
@@ -46,7 +53,7 @@ export const registerDownloadedSpamImage = async (image: DownloadedImage, fields
     category: fields.category ?? '',
     notes: fields.notes ? `${fields.notes}\nbot_image_path=${saved.localPath}` : `bot_image_path=${saved.localPath}`
   });
-  return { ...saved, aiResult, image };
+  return { ...saved, aiResult, image, spamImageId: spamImageIdFromAiResult(aiResult) };
 };
 
 export const registerSpamImageAttachment = async (attachment: Attachment, fields: SpamImageRegistrationFields): Promise<SpamImageRegistrationResult> => {

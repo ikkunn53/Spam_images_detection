@@ -12,11 +12,11 @@ class Analyzer:
         current_phash = phash(img)
         rows = self.repo.find_active()
         if not rows:
-            return self._result(False, 'allow', 'low', 'none', False, None, None, None)
+            return self._result(False, 'allow', 'low', 'none', False, None, None, None, None)
 
         for row in rows:
             if row['sha256'] == digest:
-                return self._result(True, 'delete', 'high', 'sha256', True, 0, None, row['id'])
+                return self._result(True, 'delete', 'high', 'sha256', True, 0, None, row['id'], row)
 
         best_phash = None
         best_row = None
@@ -29,11 +29,11 @@ class Analyzer:
                 if best_phash is None or dist < best_phash:
                     best_phash, best_row = dist, row
         if best_phash is not None and best_phash <= settings.phash_max_distance:
-            return self._result(True, 'delete', 'high', 'phash', False, best_phash, None, best_row['id'])
+            return self._result(True, 'delete', 'high', 'phash', False, best_phash, None, best_row['id'], best_row)
 
         rows_with_embeddings = [row for row in rows if row.get('embedding_json')]
         if not rows_with_embeddings:
-            return self._result(False, 'allow', 'low', 'none', False, best_phash, None, None)
+            return self._result(False, 'allow', 'low', 'none', False, best_phash, None, None, None)
 
         emb = await embedding(img)
         best_similarity = 0.0
@@ -43,10 +43,21 @@ class Analyzer:
             if sim > best_similarity:
                 best_similarity, best_embedding_row = sim, row
         if best_embedding_row and best_similarity >= settings.spam_auto_delete_threshold:
-            return self._result(True, 'delete', 'high', 'dinov2', False, best_phash, best_similarity, best_embedding_row['id'])
+            return self._result(True, 'delete', 'high', 'dinov2', False, best_phash, best_similarity, best_embedding_row['id'], best_embedding_row)
         if best_embedding_row and best_similarity >= settings.spam_review_threshold:
-            return self._result(True, 'review', 'medium', 'dinov2', False, best_phash, best_similarity, best_embedding_row['id'])
-        return self._result(False, 'allow', 'low', 'none', False, best_phash, best_similarity if best_embedding_row else None, best_embedding_row['id'] if best_embedding_row else None)
+            return self._result(True, 'review', 'medium', 'dinov2', False, best_phash, best_similarity, best_embedding_row['id'], best_embedding_row)
+        return self._result(False, 'allow', 'low', 'none', False, best_phash, best_similarity if best_embedding_row else None, best_embedding_row['id'] if best_embedding_row else None, best_embedding_row)
 
-    def _result(self, is_spam, action, confidence, method, sha_match, phash_distance, ai_similarity, match_id):
-        return {'is_spam': is_spam, 'action': action, 'confidence_level': confidence, 'decision_method': method, 'sha256_match': sha_match, 'phash_distance': phash_distance, 'ai_similarity': ai_similarity, 'matched_spam_image_id': match_id}
+    def _result(self, is_spam, action, confidence, method, sha_match, phash_distance, ai_similarity, match_id, match_row=None):
+        return {
+            'is_spam': is_spam,
+            'action': action,
+            'confidence_level': confidence,
+            'decision_method': method,
+            'sha256_match': sha_match,
+            'phash_distance': phash_distance,
+            'ai_similarity': ai_similarity,
+            'matched_spam_image_id': match_id,
+            'matched_spam_image_sha256': match_row.get('sha256') if match_row else None,
+            'matched_spam_image_phash': match_row.get('phash') if match_row else None,
+        }
