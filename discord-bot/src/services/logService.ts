@@ -23,16 +23,16 @@ export const sendDetectionLog = async (message: Message, result: AnalysisResult,
     return;
   }
   const attachmentName = imagePreviewFilename(evidenceFilename);
+  const embedTitle = result.action === 'delete' ? 'スパムを削除しました' : 'スパムの疑いあり';
   const embed = new EmbedBuilder()
-    .setTitle('画像スパム検出ログ')
+    .setTitle(embedTitle)
     .setColor(result.action === 'delete' ? 0xff3333 : 0xffcc00)
     .addFields(
-      { name: 'Guild', value: `${message.guild?.name ?? 'unknown'} (${message.guildId})` },
-      { name: 'Channel', value: `${'name' in message.channel ? message.channel.name : 'unknown'} (${message.channelId})` },
-      { name: 'User', value: `${message.author.tag} (${message.author.id})` },
-      { name: '判定', value: `${result.confidence_level} / ${result.decision_method} / action=${result.action}` },
+      { name: 'サーバー名', value: message.guild?.name ?? 'unknown' },
+      { name: 'チャンネル名', value: ('name' in message.channel ? message.channel.name : null) ?? 'unknown' },
+      { name: 'チャンネルID', value: message.channelId },
+      { name: 'スパムを投稿したユーザー', value: `${message.author.tag} (${message.author.id})` },
       { name: '対応', value: handling ?? (result.action === 'delete' ? '削除判定です' : '管理者レビュー待ちです') },
-      { name: '詳細', value: `sha=${result.sha256_match} pHash=${result.phash_distance ?? 'n/a'} AI=${result.ai_similarity ?? 'n/a'} match=${result.matched_spam_image_id ?? 'n/a'}` },
       { name: '本文', value: message.content?.slice(0, 1000) || '(なし)' }
     )
     .setImage(`attachment://${attachmentName}`)

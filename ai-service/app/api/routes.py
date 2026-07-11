@@ -29,6 +29,25 @@ def image_media_type(path: Path) -> str:
     with Image.open(path) as img:
         return MEDIA_TYPES.get(img.format or '', 'application/octet-stream')
 
+def bot_saved_image_paths(row: dict) -> list[Path]:
+    digest = row.get('sha256') or ''
+    notes = row.get('notes') or ''
+    paths: list[Path] = []
+    for line in notes.splitlines():
+        if not line.startswith('bot_image_path='):
+            continue
+        candidate = Path(line.removeprefix('bot_image_path=').strip())
+        if candidate.suffix.lower() not in {'.png', '.jpg', '.jpeg', '.webp', '.gif', '.bin'}:
+            continue
+        if digest and candidate.stem != digest:
+            continue
+        paths.append(candidate)
+    return paths
+
+def unlink_existing(path: Path) -> None:
+    if path.exists() and path.is_file():
+        path.unlink()
+
 def require_admin(request: Request) -> None:
     if not settings.admin_web_token:
         return
@@ -202,9 +221,9 @@ def admin_delete_spam_image_permanent(request: Request, spam_image_id: int):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='spam image not found')
     image_path_value = row.get('image_path')
     if image_path_value:
-        image_path = Path(image_path_value)
-        if image_path.exists():
-            image_path.unlink()
+        unlink_existing(Path(image_path_value))
+    for bot_image_path in bot_saved_image_paths(row):
+        unlink_existing(bot_image_path)
     if not repo.delete(spam_image_id):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='spam image not found')
     return RedirectResponse('/v1/admin/spam-images', status_code=status.HTTP_303_SEE_OTHER)
