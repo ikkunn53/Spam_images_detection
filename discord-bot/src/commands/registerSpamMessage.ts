@@ -1,4 +1,4 @@
-import { ApplicationCommandType, ContextMenuCommandBuilder, Message, MessageContextMenuCommandInteraction, MessageFlags, PermissionFlagsBits } from 'discord.js';
+import { ActionRowBuilder, ApplicationCommandType, ButtonBuilder, ButtonStyle, ContextMenuCommandBuilder, Message, MessageContextMenuCommandInteraction, MessageFlags, PermissionFlagsBits } from 'discord.js';
 import path from 'node:path';
 import { GuildSettingsRepository } from '../repositories/guildSettingsRepository.js';
 import { isProcessableImageAttachment } from '../services/imageDownloader.js';
@@ -7,6 +7,16 @@ import { sendSpamImageRegistrationLog } from '../services/logService.js';
 import { logger } from '../utils/logger.js';
 
 const guildSettings = new GuildSettingsRepository();
+
+const banConfirmationButtons = (userId: string) => new ActionRowBuilder<ButtonBuilder>().addComponents(
+  new ButtonBuilder().setCustomId(`ban_spammer:yes:${userId}`).setLabel('はい、BANする').setStyle(ButtonStyle.Danger),
+  new ButtonBuilder().setCustomId(`ban_spammer:no:${userId}`).setLabel('いいえ、何もしない').setStyle(ButtonStyle.Secondary)
+);
+
+const registrationCompleteMessage = (successCount: number, failureCount: number, spammerUserId: string): string => {
+  const result = failureCount === 0 ? 'スパム画像として登録完了しました！' : `スパム画像として登録完了しました: ${successCount}枚 / 失敗: ${failureCount}枚`;
+  return `${result}\nスパムを送信したユーザー <@${spammerUserId}> (${spammerUserId}) をBANしますか？`;
+};
 
 type RegistrationTarget =
   | { kind: 'attachment'; id: string; label: string; register: () => Promise<SpamImageRegistrationResult> }
@@ -108,9 +118,13 @@ export const registerSpamMessageCommand = {
 
     if (failures.length === 0) {
       await message.delete().catch((error) => logger.warn({ error, guildId: interaction.guildId, messageId: message.id }, 'failed to delete message after context spam registration'));
-      await interaction.editReply('スパム画像として登録完了しました！');
+      await interaction.editReply({ content: registrationCompleteMessage(successes.length, failures.length, message.author.id), components: [banConfirmationButtons(message.author.id)] });
       return;
     }
-    await interaction.editReply(`スパム画像として登録完了しました: ${successes.length}枚 / 失敗: ${failures.length}枚`);
+    if (successes.length > 0) {
+      await interaction.editReply({ content: registrationCompleteMessage(successes.length, failures.length, message.author.id), components: [banConfirmationButtons(message.author.id)] });
+      return;
+    }
+    await interaction.editReply(`スパム画像登録に失敗しました: ${failures.length}枚`);
   }
 };

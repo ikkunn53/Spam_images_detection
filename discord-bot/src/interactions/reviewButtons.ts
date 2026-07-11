@@ -148,6 +148,38 @@ const sendFalsePositiveReport = async (interaction: ButtonInteraction, event: De
 
 const registrationFollowUpText = (resultText: string): string => resultText.startsWith('スパム画像として登録完了しました！') ? 'スパム画像として登録完了しました！' : resultText;
 
+
+const handleBanSpammerButton = async (interaction: ButtonInteraction): Promise<boolean> => {
+  if (!interaction.customId.startsWith('ban_spammer:')) return false;
+  const [, rawChoice, userId] = interaction.customId.split(':');
+  if (!userId || !['yes', 'no'].includes(rawChoice)) {
+    await interaction.update({ content: '不正なBAN確認操作です。', components: [] });
+    return true;
+  }
+  if (rawChoice === 'no') {
+    await interaction.update({ content: `BANせずに完了しました。対象ユーザー: <@${userId}> (${userId})`, components: [] });
+    logger.info({ targetUserId: userId, actorUserId: interaction.user.id }, 'spammer ban skipped after registration');
+    return true;
+  }
+  if (!interaction.memberPermissions?.has(PermissionFlagsBits.BanMembers)) {
+    await interaction.update({ content: 'BANするには Ban Members 権限が必要です。対象ユーザーはBANしていません。', components: [] });
+    return true;
+  }
+  if (!interaction.guild) {
+    await interaction.update({ content: 'サーバー情報を取得できないため、対象ユーザーをBANできませんでした。', components: [] });
+    return true;
+  }
+  try {
+    await interaction.guild.members.ban(userId, { reason: `Spam image registration confirmed by ${interaction.user.tag} (${interaction.user.id})` });
+    await interaction.update({ content: `対象ユーザー <@${userId}> (${userId}) をBANしました。`, components: [] });
+    logger.info({ targetUserId: userId, actorUserId: interaction.user.id, guildId: interaction.guildId }, 'spammer banned after app registration');
+  } catch (error) {
+    logger.warn({ error, targetUserId: userId, actorUserId: interaction.user.id, guildId: interaction.guildId }, 'failed to ban spammer after app registration');
+    await interaction.update({ content: '対象ユーザーのBANに失敗しました。Bot の権限・ロール位置・対象ユーザーの状態を確認してください。', components: [] });
+  }
+  return true;
+};
+
 const handleFalsePositiveReportButton = async (interaction: ButtonInteraction): Promise<boolean> => {
   if (!interaction.customId.startsWith('fp_report:')) return false;
   if (!interaction.memberPermissions?.has(PermissionFlagsBits.ManageMessages)) {
@@ -168,6 +200,7 @@ const handleFalsePositiveReportButton = async (interaction: ButtonInteraction): 
 };
 
 export const handleReviewButton = async (interaction: ButtonInteraction): Promise<boolean> => {
+  if (await handleBanSpammerButton(interaction)) return true;
   if (await handleFalsePositiveReportButton(interaction)) return true;
   if (!interaction.customId.startsWith('review:')) return false;
   if (!interaction.memberPermissions?.has(PermissionFlagsBits.ManageMessages)) {
