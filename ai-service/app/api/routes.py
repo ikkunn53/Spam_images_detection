@@ -29,6 +29,25 @@ def image_media_type(path: Path) -> str:
     with Image.open(path) as img:
         return MEDIA_TYPES.get(img.format or '', 'application/octet-stream')
 
+def bot_saved_image_paths(row: dict) -> list[Path]:
+    digest = row.get('sha256') or ''
+    notes = row.get('notes') or ''
+    paths: list[Path] = []
+    for line in notes.splitlines():
+        if not line.startswith('bot_image_path='):
+            continue
+        candidate = Path(line.removeprefix('bot_image_path=').strip())
+        if candidate.suffix.lower() not in {'.png', '.jpg', '.jpeg', '.webp', '.gif', '.bin'}:
+            continue
+        if digest and candidate.stem != digest:
+            continue
+        paths.append(candidate)
+    return paths
+
+def unlink_existing(path: Path) -> None:
+    if path.exists() and path.is_file():
+        path.unlink()
+
 def require_admin(request: Request) -> None:
     if not settings.admin_web_token:
         return
@@ -38,9 +57,12 @@ def require_admin(request: Request) -> None:
 
 def admin_spam_image_row(row: dict) -> str:
     status_label = '有効' if row.get('active') == 1 else '削除済み'
-    delete_form = '' if row.get('active') != 1 else f'''
-      <form method="post" action="/v1/admin/spam-images/{row['id']}/delete" onsubmit="return confirm('このスパム画像を削除しますか？');">
-        <button class="danger" type="submit">削除</button>
+    delete_form = f'''
+      <form method="post" action="/v1/admin/spam-images/{row['id']}/delete" onsubmit="return confirm('このスパム画像を無効化しますか？DBデータと画像ファイルは残ります。');">
+        <button class="danger" type="submit" {'disabled' if row.get('active') != 1 else ''}>無効化</button>
+      </form>
+      <form method="post" action="/v1/admin/spam-images/{row['id']}/delete-permanent" onsubmit="return confirm('このスパム画像のDBデータと保存画像ファイルを完全削除します。元に戻せません。実行しますか？');">
+        <button class="danger permanent" type="submit">DBも完全削除</button>
       </form>'''
     return f'''
       <tr>
@@ -151,6 +173,8 @@ def admin_spam_images(request: Request):
     form {{ display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }}
     button {{ color: #fff; background: linear-gradient(135deg, var(--primary), var(--primary-2)); border: 0; border-radius: 999px; padding: 10px 15px; font-weight: 800; cursor: pointer; box-shadow: 0 12px 24px rgba(79,70,229,.24); }}
     button.danger {{ background: linear-gradient(135deg, var(--danger), #f97316); }}
+    button.permanent {{ background: linear-gradient(135deg, #7f1d1d, #dc2626); }}
+    button:disabled {{ opacity: .45; cursor: not-allowed; box-shadow: none; }}
     code {{ padding: 3px 7px; border-radius: 8px; background: rgba(100,116,139,.14); word-break: break-all; }}
     @media (max-width: 760px) {{ body {{ padding: 18px; }} table {{ display: block; overflow-x: auto; }} }}
   </style>
@@ -161,7 +185,7 @@ def admin_spam_images(request: Request):
 </head>
 <body>
   <h1>登録済みスパム画像</h1>
-  <p>誤って登録した画像は「削除」で無効化できます。無効化後は検知対象から外れます。</p>
+  <p>誤って登録した画像は「無効化」で検知対象から外せます。「DBも完全削除」はDBデータとAI Service側の保存画像ファイルを削除します。</p>
   <button type="button" onclick="toggleTheme()">ライト/ダーク切替</button>
   <h2>新規登録</h2>
   <form method="post" action="/v1/admin/spam-images" enctype="multipart/form-data">
@@ -187,4 +211,19 @@ def admin_delete_spam_image(request: Request, spam_image_id: int):
     require_admin(request)
     if not repo.deactivate(spam_image_id):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='active spam image not found')
+    return RedirectResponse('/v1/admin/spam-images', status_code=status.HTTP_303_SEE_OTHER)
+
+@router.post('/admin/spam-images/{spam_image_id}/delete-permanent')
+def admin_delete_spam_image_permanent(request: Request, spam_image_id: int):
+    require_admin(request)
+    row = repo.find_by_id(spam_image_id)
+    if not row:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='spam image not found')
+    image_path_value = row.get('image_path')
+    if image_path_value:
+        unlink_existing(Path(image_path_value))
+    for bot_image_path in bot_saved_image_paths(row):
+        unlink_existing(bot_image_path)
+    if not repo.delete(spam_image_id):
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='spam image not found')
     return RedirectResponse('/v1/admin/spam-images', status_code=status.HTTP_303_SEE_OTHER)
