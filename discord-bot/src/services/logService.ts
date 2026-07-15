@@ -26,7 +26,7 @@ const imagePreviewFilename = (filename?: string | null): string => {
   return 'evidence-image.png';
 };
 
-export const sendDetectionLog = async (message: Message, result: AnalysisResult, image: Buffer, detectionEventId: number, logChannelId?: string | null, handling?: string, evidenceFilename?: string | null): Promise<void> => {
+export const sendDetectionLog = async (message: Message, result: AnalysisResult, image: Buffer, detectionEventId: number, logChannelId?: string | null, handling?: string, evidenceFilename?: string | null, includeReviewButtons = true): Promise<void> => {
   if (!logChannelId) {
     logger.info({ guildId: message.guildId, messageId: message.id, detectionEventId }, 'detection log channel is not configured; skipping Discord log');
     return;
@@ -61,13 +61,14 @@ export const sendDetectionLog = async (message: Message, result: AnalysisResult,
       new ButtonBuilder().setCustomId(`review:false_positive:${detectionEventId}`).setLabel('誤検知').setStyle(ButtonStyle.Secondary)
     ];
   const row = new ActionRowBuilder<ButtonBuilder>().addComponents(...buttons);
-  await sendEmbedToTextChannel(message.client, logChannelId, { embeds: [embed], files: [new AttachmentBuilder(image, { name: attachmentName })], components: [row] }, { guildId: message.guildId, messageId: message.id, detectionEventId, logChannelId });
+  const components = includeReviewButtons ? [row] : [];
+  await sendEmbedToTextChannel(message.client, logChannelId, { embeds: [embed], files: [new AttachmentBuilder(image, { name: attachmentName })], components }, { guildId: message.guildId, messageId: message.id, detectionEventId, logChannelId });
   logger.info({ guildId: message.guildId, messageId: message.id, detectionEventId, logChannelId, action: result.action, handling }, 'detection log sent');
 };
 
 export const sendGlobalDetectionLog = async (message: Message, result: AnalysisResult, image: Buffer, detectionEventId: number, guildLogChannelId?: string | null, handling?: string, evidenceFilename?: string | null): Promise<void> => {
   if (!config.falsePositiveReportChannelId || config.falsePositiveReportChannelId === guildLogChannelId) return;
-  await sendDetectionLog(message, result, image, detectionEventId, config.falsePositiveReportChannelId, handling, evidenceFilename);
+  await sendDetectionLog(message, result, image, detectionEventId, config.falsePositiveReportChannelId, handling, evidenceFilename, false);
 };
 
 export type SpamImageRegistrationLogInput = {

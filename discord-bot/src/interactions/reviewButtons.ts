@@ -13,6 +13,13 @@ const actionMap: Record<string, string> = { confirm: 'spam_confirmed', false_pos
 const actionLabels: Record<string, string> = { spam_confirmed: 'スパム確定', false_positive: '誤検知', register_spam_image: 'スパムとして登録' };
 
 
+const banConfirmationButtons = (userId: string) => new ActionRowBuilder<ButtonBuilder>().addComponents(
+  new ButtonBuilder().setCustomId(`ban_spammer:yes:${userId}`).setLabel('はい、BANする').setStyle(ButtonStyle.Danger),
+  new ButtonBuilder().setCustomId(`ban_spammer:no:${userId}`).setLabel('いいえ、何もしない').setStyle(ButtonStyle.Secondary)
+);
+
+const banConfirmationMessage = (userId: string): string => `スパムを送信したユーザー <@${userId}> (${userId}) をBANしますか？`;
+
 const detectionMetadata = (event: DetectionEvent): Record<string, unknown> => {
   if (!event.metadata_json) return {};
   try {
@@ -229,9 +236,9 @@ export const handleReviewButton = async (interaction: ButtonInteraction): Promis
   if (action === 'false_positive') {
     await interaction.followUp({ content: '誤検知として記録しました。追加で報告チャンネルへ報告しますか？', components: [falsePositiveReportButtons(detectionEventId)], flags: MessageFlags.Ephemeral });
   } else if (action === 'register_spam_image') {
-    await interaction.followUp({ content: registrationFollowUpText(resultText), flags: MessageFlags.Ephemeral });
+    await interaction.followUp({ content: `${registrationFollowUpText(resultText)}\n${banConfirmationMessage(event.user_id)}`, components: [banConfirmationButtons(event.user_id)], flags: MessageFlags.Ephemeral });
   } else {
-    await interaction.followUp({ content: `処理済みとして記録しました: ${actionLabels[action] ?? action}\n${resultText}`, flags: MessageFlags.Ephemeral });
+    await interaction.followUp({ content: `処理済みとして記録しました: ${actionLabels[action] ?? action}\n${resultText}\n${banConfirmationMessage(event.user_id)}`, components: [banConfirmationButtons(event.user_id)], flags: MessageFlags.Ephemeral });
   }
   logger.info({ detectionEventId, action, actorUserId: interaction.user.id, resultText }, 'review action processed');
   return true;
