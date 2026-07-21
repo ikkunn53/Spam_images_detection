@@ -5,6 +5,7 @@ import { DetectionService } from '../services/detectionService.js';
 import { downloadImage, isProcessableImageAttachment } from '../services/imageDownloader.js';
 import { sendDetectionLog, sendGlobalDetectionLog } from '../services/logService.js';
 import { sha256 } from '../services/hashService.js';
+import { applySpamTimeoutIfNeeded } from '../services/spamTimeoutService.js';
 import { logger } from '../utils/logger.js';
 
 const detectionService = new DetectionService();
@@ -50,6 +51,8 @@ export const messageCreate = {
           }
         }
         const eventId = detections.create({ guild_id: message.guildId, channel_id: message.channelId, message_id: message.id, user_id: message.author.id, sha256: digest, decision_method: result.decision_method, confidence_level: result.confidence_level, phash_distance: result.phash_distance, ai_similarity: result.ai_similarity, matched_spam_image_id: result.matched_spam_image_id, final_decision: result.action, auto_deleted: autoDeleted ? 1 : 0, metadata_json: JSON.stringify({ attachmentId: attachment.id, filename: image.filename, error: result.error, matchedSpamImageId: result.matched_spam_image_id, matchedSpamImageSha256: result.matched_spam_image_sha256 ?? null, matchedSpamImagePhash: result.matched_spam_image_phash ?? null }) });
+        const timedOut = result.action !== 'allow' && await applySpamTimeoutIfNeeded(message, detections);
+        if (timedOut) handling = `${handling}。10分間タイムアウトしました`;
         logger.info({ guildId: message.guildId, channelId: message.channelId, messageId: message.id, attachmentId: attachment.id, detectionEventId: eventId, action: result.action, handling, autoDeleted, logChannelId: settings.log_channel_id ?? null }, 'image moderation decision recorded');
         const shouldSendDetectionLog = result.action !== 'allow' && result.matched_spam_image_id !== null;
         if (shouldSendDetectionLog) {

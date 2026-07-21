@@ -11,6 +11,17 @@ export class DetectionRepository {
     return db.prepare('SELECT id, guild_id, channel_id, message_id, user_id, sha256, final_decision, auto_deleted, metadata_json FROM detection_events WHERE id = ?').get(detectionEventId) as DetectionEvent | undefined;
   }
 
+  countRecentSpamOrReviewMessages(guildId: string, userId: string, windowMinutes = 10): number {
+    const row = db.prepare(`SELECT COUNT(DISTINCT message_id) AS count
+      FROM detection_events
+      WHERE guild_id = ?
+        AND user_id = ?
+        AND final_decision IN ('delete', 'review')
+        AND created_at >= datetime('now', ?)`)
+      .get(guildId, userId, `-${windowMinutes} minutes`) as { count: number };
+    return Number(row.count);
+  }
+
   findRecent(limit = 100): Array<Record<string, unknown>> {
     return db.prepare('SELECT * FROM detection_events ORDER BY created_at DESC LIMIT ?').all(limit) as Array<Record<string, unknown>>;
   }
