@@ -42,6 +42,8 @@ CREATE TABLE IF NOT EXISTS detection_events (
   metadata_json TEXT,
   created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
+CREATE INDEX IF NOT EXISTS detection_events_guild_user_created_at_idx
+  ON detection_events (guild_id, user_id, created_at);
 CREATE TABLE IF NOT EXISTS moderation_actions (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   detection_event_id INTEGER,
