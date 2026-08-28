@@ -1,0 +1,9 @@
+title: Spam Images Detection
+description: Discord Image Spam Detection Bot
+theme: jekyll-theme-cayman
+exclude:
+  - ai-service
+  - discord-bot
+  - startup
+  - shared
+  - docker-compose.yml
