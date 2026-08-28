@@ -1,5 +1,15 @@
 # Discord Image Spam Detection Bot
 
+## プライバシーポリシー
+
+本Botにおける利用者情報の取り扱いについては、[プライバシーポリシー](privacy.md)をご確認ください。
+
+Discord Developer Portalには、GitHub Pagesで公開される次のURLを登録してください。
+
+```text
+https://ikkunn53.github.io/Spam_images_detection/privacy.html
+```
+
 セルフホスト型の Discord 画像スパム検出 Bot です。Discord に投稿された画像を SHA-256、pHash、DINOv2 Small 埋め込み類似度で段階判定し、自動削除、ログ送信、管理者レビュー、既知スパム画像登録を行う構成を目指します。
 
 ## 1. 推奨アーキテクチャ
