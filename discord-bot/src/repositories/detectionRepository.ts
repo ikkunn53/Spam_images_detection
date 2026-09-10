@@ -17,6 +17,12 @@ export class DetectionRepository {
       WHERE guild_id = ?
         AND user_id = ?
         AND final_decision IN ('delete', 'review')
+        AND matched_spam_image_id IS NOT NULL
+        AND NOT EXISTS (
+          SELECT 1 FROM moderation_actions
+          WHERE moderation_actions.detection_event_id = detection_events.id
+            AND moderation_actions.action = 'false_positive'
+        )
         AND created_at >= datetime('now', ?)`)
       .get(guildId, userId, `-${windowMinutes} minutes`) as { count: number };
     return Number(row.count);
