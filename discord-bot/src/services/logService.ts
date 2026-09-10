@@ -35,7 +35,11 @@ export const sendDetectionLog = async (message: Message, result: AnalysisResult,
   const embedTitle = result.action === 'delete' ? 'スパムを削除しました' : 'スパムの疑いあり';
   const matchedImageFields = result.matched_spam_image_id === null ? [] : [
     { name: '検知元スパム画像ID', value: String(result.matched_spam_image_id), inline: true },
-    { name: '検知元スパム画像SHA-256', value: result.matched_spam_image_sha256 ?? 'n/a' }
+    { name: '投稿画像SHA-256', value: result.analyzed_image_sha256 ?? 'n/a' },
+    { name: '検知元スパム画像SHA-256', value: result.matched_spam_image_sha256 ?? 'n/a' },
+    { name: '判定方式', value: result.decision_method, inline: true },
+    { name: 'pHash距離', value: result.phash_distance === null ? 'n/a' : String(result.phash_distance), inline: true },
+    { name: 'AI類似度', value: result.ai_similarity === null ? 'n/a' : result.ai_similarity.toFixed(4), inline: true }
   ];
   const embed = new EmbedBuilder()
     .setTitle(embedTitle)

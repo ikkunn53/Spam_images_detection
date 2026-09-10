@@ -2,7 +2,7 @@ import { File, FormData, request } from 'undici';
 import { config } from '../config/env.js';
 import { logger } from '../utils/logger.js';
 
-export type AnalysisResult = { is_spam: boolean; action: 'delete' | 'review' | 'allow'; confidence_level: 'high' | 'medium' | 'low'; decision_method: string; sha256_match: boolean; phash_distance: number | null; ai_similarity: number | null; matched_spam_image_id: number | null; matched_spam_image_sha256?: string | null; matched_spam_image_phash?: string | null; error?: string };
+export type AnalysisResult = { is_spam: boolean; action: 'delete' | 'review' | 'allow'; confidence_level: 'high' | 'medium' | 'low'; decision_method: string; sha256_match: boolean; phash_distance: number | null; ai_similarity: number | null; matched_spam_image_id: number | null; matched_spam_image_sha256?: string | null; matched_spam_image_phash?: string | null; analyzed_image_sha256: string; error?: string };
 
 export class AiClient {
   private failures = 0;
@@ -23,6 +23,9 @@ export class AiClient {
       }
       const json = await res.body.json() as AnalysisResult;
       if (!['delete', 'review', 'allow'].includes(json.action)) throw new Error(`AI service returned invalid action: ${String(json.action)}`);
+      if (!json.analyzed_image_sha256 || json.analyzed_image_sha256 !== fields.sha256) {
+        throw new Error('AI service analyzed SHA-256 does not match the uploaded image');
+      }
       this.failures = 0;
       logger.info({ statusCode: res.statusCode, action: json.action, decisionMethod: json.decision_method, matchedSpamImageId: json.matched_spam_image_id }, 'AI analysis response received');
       return json;

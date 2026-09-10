@@ -13,21 +13,37 @@ test('requires three or more qualifying messages before a timeout is applied', a
   assert.equal(SPAM_TIMEOUT_NOTIFICATION, 'スパム検知されたため、一時的なタイムアウト処置が実行されました。\n誤検知の場合はサーバー管理者にお問い合わせください');
 });
 
-test('counts distinct delete and review messages for the same user', async () => {
+test('counts only matched, unresolved delete and review messages for the same user', async () => {
   const { db } = await import('../repositories/database.js');
   const { DetectionRepository } = await import('../repositories/detectionRepository.js');
   db.prepare('DELETE FROM detection_events').run();
-  const insert = db.prepare(`INSERT INTO detection_events (guild_id, channel_id, message_id, user_id, final_decision, auto_deleted)
-    VALUES (?, 'channel', ?, ?, ?, 0)`);
-  insert.run('guild', 'delete-message', 'user', 'delete');
-  insert.run('guild', 'review-message', 'user', 'review');
-  insert.run('guild', 'review-message', 'user', 'review');
-  insert.run('guild', 'allowed-message', 'user', 'allow');
-  insert.run('guild', 'other-user-message', 'other-user', 'delete');
+  const insert = db.prepare(`INSERT INTO detection_events (guild_id, channel_id, message_id, user_id, final_decision, matched_spam_image_id, auto_deleted)
+    VALUES (?, 'channel', ?, ?, ?, ?, 0)`);
+  insert.run('guild', 'delete-message', 'user', 'delete', 1);
+  insert.run('guild', 'review-message', 'user', 'review', 1);
+  insert.run('guild', 'review-message', 'user', 'review', 1);
+  insert.run('guild', 'allowed-message', 'user', 'allow', null);
+  insert.run('guild', 'fallback-message', 'user', 'review', null);
+  insert.run('guild', 'other-user-message', 'other-user', 'delete', 1);
 
   const repository = new DetectionRepository();
   assert.equal(repository.countRecentSpamOrReviewMessages('guild', 'user'), 2);
   assert.equal(repository.countRecentSpamOrReviewMessages('guild', 'other-user'), 1);
+});
+
+test('does not count a detection after an administrator marks it false positive', async () => {
+  const { db } = await import('../repositories/database.js');
+  const { DetectionRepository } = await import('../repositories/detectionRepository.js');
+  db.prepare('DELETE FROM moderation_actions').run();
+  db.prepare('DELETE FROM detection_events').run();
+  const result = db.prepare(`INSERT INTO detection_events
+    (guild_id, channel_id, message_id, user_id, final_decision, matched_spam_image_id, auto_deleted)
+    VALUES ('guild', 'channel', 'message', 'user', 'review', 1, 0)`).run();
+
+  const repository = new DetectionRepository();
+  assert.equal(repository.countRecentSpamOrReviewMessages('guild', 'user'), 1);
+  repository.addModerationAction(Number(result.lastInsertRowid), 'false_positive', 'moderator');
+  assert.equal(repository.countRecentSpamOrReviewMessages('guild', 'user'), 0);
 });
 
 test('notifies only the timed out user by direct message', async () => {
