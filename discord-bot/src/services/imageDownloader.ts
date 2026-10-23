@@ -1,4 +1,4 @@
-import { request } from 'undici';
+import { Agent, interceptors, request } from 'undici';
 import sharp from 'sharp';
 import pLimit from 'p-limit';
 import { Attachment } from 'discord.js';
@@ -7,6 +7,7 @@ import { config } from '../config/env.js';
 const allowedExtensions = new Set(['.png', '.jpg', '.jpeg', '.webp', '.gif']);
 const allowedMimePrefixes = ['image/png', 'image/jpeg', 'image/webp', 'image/gif'];
 const limit = pLimit(config.downloadConcurrency);
+const imageDispatcher = new Agent().compose(interceptors.redirect({ maxRedirections: 2 }));
 
 export type DownloadedImage = { buffer: Buffer; contentType: string; filename: string };
 
@@ -24,7 +25,7 @@ const fetchImageUrl = async (url: string, filename: string): Promise<DownloadedI
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), config.downloadTimeoutMs);
   try {
-    const response = await request(url, { signal: controller.signal, maxRedirections: 2 });
+    const response = await request(url, { signal: controller.signal, dispatcher: imageDispatcher });
     const contentType = String(response.headers['content-type'] ?? '');
     if (!allowedMimePrefixes.some((prefix) => contentType.startsWith(prefix))) throw new Error(`Unexpected content-type: ${contentType}`);
     const chunks: Buffer[] = [];
