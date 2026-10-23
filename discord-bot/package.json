@@ -10,7 +10,7 @@
     "deploy:commands": "tsx src/deploy-commands.ts"
   },
   "dependencies": {
-    "better-sqlite3": "^11.1.2",
+    "better-sqlite3": "^12.11.1",
     "discord.js": "^14.15.3",
     "dotenv": "^16.4.5",
     "lru-cache": "^10.4.3",
