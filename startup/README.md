@@ -83,3 +83,60 @@ Node.js 24 を使用し続ける場合は、ネイティブ依存関係のビル
 - npm
 
 DINOv2 モデルは初回実行時に Hugging Face から取得されるため、初回のみ時間がかかります。
+
+## Linux セットアップ（Ubuntu 24.04 / Debian 12）
+
+Bash、Python 3.11～3.12、Node.js 22 または24を使用します。Python 3.13以降は現在固定している PyTorch 2.3.1 の対象外です。Linux x86_64 は CPU 版で検証しています。ARM64 はインストール経路を用意していますが、実機未検証です。
+
+リポジトリのルートで実行します。別の作業ディレクトリからスクリプトの絶対パスを指定しても動作します。
+
+```bash
+# 初回: Ubuntu / Debian のシステムパッケージとローカル Node.js 22
+bash startup/install-system.sh
+# 以降の処理は root ではなく Bot を動かす通常ユーザーで実行
+bash startup/setup.sh
+```
+
+`install-system.sh` は apt に必要なときだけ sudo を使用し、Node.js はシステム版を置き換えず `.tools/node` に配置します。公式配布ファイルの SHA-256 を検証します。既に必要な OS パッケージがある場合、Node.js だけの導入は `bash startup/install-system.sh --node-only` で実行できます。他のディストリビューションでは同等の OS パッケージを手動で導入してください。
+
+`setup.sh` は既存の `.env` を保持し、未作成の場合だけサンプルから作成します。Python 仮想環境、Node.js 依存関係、ビルド、DINOv2 の取得と実推論まで実行します。モデル取得を後回しにする場合は `bash startup/setup.sh --skip-model-download` を使用できますが、画像登録・類似判定の初回実行時に取得が必要です。Python の指定例は `PYTHON_BIN=python3.11 bash startup/setup.sh` です。
+
+Windows から移行するときはソース、`.env`、DB、画像を移し、`.venv` と `node_modules` はコピーせず Linux 上で作成してください。Windows の絶対パスを設定した `DATABASE_PATH`、`IMAGE_STORAGE_DIR`、`SPAM_IMAGE_IMPORT_DIR` などは Linux のパスへ変更してください。既存の仮想環境が Linux 用でない場合、スクリプトは削除せずエラーにします。
+
+### 設定
+
+`discord-bot/.env` に `DISCORD_TOKEN` と `CLIENT_ID` を設定してください。Message Content Intent も Discord Developer Portal で有効にしてください。トークン値を Git に登録しないでください。
+
+`ADMIN_WEB_TOKEN` を使う場合、`ai-service/.env` と `discord-bot/.env` に同じ値を設定します。標準ポートは AI が8000、Bot 管理画面が3000です。変更する場合は、例えば次のように両方を合わせてください。
+
+```dotenv
+# ai-service/.env
+AI_SERVICE_PORT=8004
+```
+
+```dotenv
+# discord-bot/.env
+AI_SERVICE_URL=http://127.0.0.1:8004
+```
+
+### 起動・停止
+
+```bash
+bash startup/start-bot.sh
+# 別ターミナルで停止、または起動ターミナルで Ctrl+C
+bash startup/stop-bot.sh
+```
+
+起動時に Bot をビルドし直し、SQLite の互換性を確認します。AI サービスを先に起動して `/health` の応答を確認してから Bot を起動します。AI と Bot は同じスーパーバイザーで管理し、片方が終了したら残りも停止します。重複起動と既存 AI ポートの使用を検出します。PID はプロセス開始時刻も照合し、無関係なプロセスを停止しません。
+
+フォアグラウンドで動くため、起動ターミナルを維持してください。ログは `data/logs/ai-service.log` と `data/logs/discord-bot.log` です。モデルキャッシュは `.hf-cache` です。自動ローテーションは含まれないため、長期運用ではログのローテーションを設定してください。
+
+```bash
+tail -f data/logs/ai-service.log data/logs/discord-bot.log
+# Discord 認証情報なしで AI サービスのみを確認
+bash startup/start-bot.sh --ai-only
+# スラッシュコマンド登録（Discord 上のコマンド設定を更新）
+bash startup/deploy-commands.sh
+```
+
+AI はローカルホストで待ち受けます。Bot 管理画面へリモートから接続する場合は、SSH トンネルまたは適切な HTTPS リバースプロキシを使用し、OAuth2 の `WEB_BASE_URL` と Redirect URL を一致させてください。

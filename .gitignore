@@ -12,3 +12,6 @@ data/
 # Local spam-image import drop folder
 discord-bot/spam-images/*
 !discord-bot/spam-images/.gitkeep
+
+# Project-local Linux tools and dependency caches
+/.tools/

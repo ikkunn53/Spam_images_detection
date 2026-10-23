@@ -183,6 +183,19 @@ cp ai-service/.env.example ai-service/.env
 docker compose up --build
 ```
 
+### Linux の一括セットアップ・起動
+
+Ubuntu 24.04 / Debian 12 ではリポジトリのルートで実行します。
+
+```bash
+bash startup/install-system.sh
+bash startup/setup.sh
+# discord-bot/.env に DISCORD_TOKEN と CLIENT_ID を設定
+bash startup/start-bot.sh
+```
+
+停止は Ctrl+C または `bash startup/stop-bot.sh` です。ポート変更、Windows からの移行、モデル取得、ログについては [Linux 手順](startup/README.md#linux-セットアップubuntu-2404--debian-12) を参照してください。
+
 ### ローカル開発
 
 ```bash
