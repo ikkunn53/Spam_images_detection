@@ -1,2 +1,5 @@
 # Auto detect text files and perform LF normalization
 * text=auto
+
+# Linux shell entry points must remain executable by Bash after Windows checkouts.
+*.sh text eol=lf
