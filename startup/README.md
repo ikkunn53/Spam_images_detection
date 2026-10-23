@@ -63,6 +63,8 @@ AI_SERVICE_PORT=8004
 
 `NODE_MODULE_VERSION` の不一致は、依存関係をインストールしたときと起動時の Node.js が異なる場合に発生します。Node.js 22 を推奨します。セットアップと起動には同じ Node.js を使用してください。
 
+Node.js 24 を使う場合は、対応する Windows 用バイナリを提供する `better-sqlite3` 12 系が必要です。本リポジトリでは 12.11.1 以降を使用します。古い 11 系が残っている場合は、最新版のコードを取得してから `discord-bot` で `npm install` を実行してください。`npm rebuild` だけでは依存バージョンは更新されません。
+
 `npm start` と `npm run dev` は、起動前に SQLite の読み込みを確認し、失敗した場合は `npm rebuild better-sqlite3` を実行します。再ビルドに失敗する場合は、Node.js 22 に切り替えて新しいターミナルを開き、次を実行してください。DB と `.env` の削除は不要です。
 
 ```bat
