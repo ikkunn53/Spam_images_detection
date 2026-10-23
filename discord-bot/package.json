@@ -1,5 +1,8 @@
 {
   "scripts": {
+    "check:native": "node scripts/check-native.cjs",
+    "prestart": "npm run check:native",
+    "predev": "npm run check:native",
     "build": "tsc -p tsconfig.json",
     "start": "node dist/index.js",
     "dev": "tsx src/index.ts",

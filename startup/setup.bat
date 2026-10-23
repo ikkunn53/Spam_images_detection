@@ -44,6 +44,12 @@ if errorlevel 1 (
   echo ERROR: npm install failed.
   exit /b 1
 )
+call npm run check:native
+if errorlevel 1 (
+  popd
+  echo ERROR: Native SQLite dependency is incompatible with the current Node.js version.
+  exit /b 1
+)
 call npm run build
 if errorlevel 1 (
   popd
