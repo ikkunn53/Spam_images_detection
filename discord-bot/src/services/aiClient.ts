@@ -1,6 +1,8 @@
-import { File, FormData, request } from 'undici';
+import { Agent, File, FormData, request } from 'undici';
 import { config } from '../config/env.js';
 import { logger } from '../utils/logger.js';
+
+const aiDispatcher = new Agent();
 
 export type AnalysisResult = { is_spam: boolean; action: 'delete' | 'review' | 'allow'; confidence_level: 'high' | 'medium' | 'low'; decision_method: string; sha256_match: boolean; phash_distance: number | null; ai_similarity: number | null; matched_spam_image_id: number | null; matched_spam_image_sha256?: string | null; matched_spam_image_phash?: string | null; analyzed_image_sha256: string; error?: string };
 
@@ -16,7 +18,7 @@ export class AiClient {
     form.set('file', new File([buffer], filename));
     for (const [key, value] of Object.entries(fields)) form.set(key, value);
     try {
-      const res = await request(`${config.aiServiceUrl}/v1/analyze`, { method: 'POST', body: form, bodyTimeout: config.aiBodyTimeoutMs, headersTimeout: config.aiHeadersTimeoutMs });
+      const res = await request(`${config.aiServiceUrl}/v1/analyze`, { dispatcher: aiDispatcher, method: 'POST', body: form, bodyTimeout: config.aiBodyTimeoutMs, headersTimeout: config.aiHeadersTimeoutMs });
       if (res.statusCode >= 400) {
         const body = await res.body.text();
         throw new Error(`AI service analysis failed: ${res.statusCode} ${body}`);
@@ -40,8 +42,11 @@ export class AiClient {
     const form = new FormData();
     form.set('file', new File([buffer], filename));
     for (const [key, value] of Object.entries(fields)) form.set(key, value);
-    const res = await request(`${config.aiServiceUrl}/v1/spam-images`, { method: 'POST', body: form, bodyTimeout: config.aiBodyTimeoutMs, headersTimeout: config.aiHeadersTimeoutMs });
-    if (res.statusCode >= 400) throw new Error(`AI service registration failed: ${res.statusCode}`);
+    const res = await request(`${config.aiServiceUrl}/v1/spam-images`, { dispatcher: aiDispatcher, method: 'POST', body: form, headers: config.aiAdminToken ? { 'x-admin-token': config.aiAdminToken } : {}, bodyTimeout: config.aiBodyTimeoutMs, headersTimeout: config.aiHeadersTimeoutMs });
+    if (res.statusCode >= 400) {
+      await res.body.dump();
+      throw new Error(`AI service registration failed: ${res.statusCode}`);
+    }
     const json = await res.body.json();
     logger.info({ statusCode: res.statusCode, result: json }, 'spam image registration response received');
     return json;

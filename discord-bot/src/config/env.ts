@@ -4,7 +4,7 @@ const numberFromEnv = (name: string, fallback: number): number => {
   const raw = process.env[name];
   if (!raw) return fallback;
   const parsed = Number(raw);
-  if (Number.isNaN(parsed)) throw new Error(`Invalid number for ${name}`);
+  if (!Number.isFinite(parsed)) throw new Error(`Invalid number for ${name}`);
   return parsed;
 };
 
@@ -13,6 +13,7 @@ export const config = {
   clientId: process.env.CLIENT_ID ?? '',
   guildId: process.env.GUILD_ID,
   databasePath: process.env.DATABASE_PATH ?? '../data/bot.sqlite',
+  aiAdminToken: process.env.ADMIN_WEB_TOKEN ?? '',
   aiServiceUrl: process.env.AI_SERVICE_URL ?? 'http://localhost:8000',
   aiHeadersTimeoutMs: numberFromEnv('AI_HEADERS_TIMEOUT_MS', 180_000),
   aiBodyTimeoutMs: numberFromEnv('AI_BODY_TIMEOUT_MS', 300_000),

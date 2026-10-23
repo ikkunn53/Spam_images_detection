@@ -1,4 +1,5 @@
 @echo off
+chcp 65001 >nul
 setlocal EnableExtensions
 
 REM Discord Image Spam Detection Bot - initial Windows setup

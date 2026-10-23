@@ -13,6 +13,10 @@ export const registerSpamImageCommand = {
     .addStringOption((option) => option.setName('category').setDescription('カテゴリ').setRequired(false))
     .addStringOption((option) => option.setName('notes').setDescription('備考').setRequired(false)),
   async execute(interaction: ChatInputCommandInteraction) {
+    if (!interaction.guildId || !interaction.memberPermissions?.has(PermissionFlagsBits.ManageMessages)) {
+      await interaction.reply({ content: 'この操作にはサーバー内での ManageMessages 権限が必要です。', flags: MessageFlags.Ephemeral });
+      return;
+    }
     const attachment = interaction.options.getAttachment('image', true);
     if (!isProcessableImageAttachment(attachment)) {
       await interaction.reply({ content: '対応していない画像、またはサイズ上限超過です。', flags: MessageFlags.Ephemeral });

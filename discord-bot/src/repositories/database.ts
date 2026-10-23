@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { config } from '../config/env.js';
 
+if (config.databasePath !== ':memory:') fs.mkdirSync(path.dirname(config.databasePath), { recursive: true });
 export const db = new Database(config.databasePath);
 const schemaPath = path.join(process.cwd(), 'src/repositories/schema.sql');
 const fallbackSchemaPath = path.join(process.cwd(), 'discord-bot/src/repositories/schema.sql');

@@ -58,3 +58,17 @@ test('AI unavailable fallback retains the locally calculated image digest', asyn
   assert.equal(result.decision_method, 'fallback_ai_unavailable');
   assert.equal(result.analyzed_image_sha256, 'local-sha');
 });
+
+test('delete and review decisions are refreshed after deactivation or another guild request', async () => {
+  const { DetectionService } = await import('./detectionService.js');
+  for (const action of ['delete', 'review'] as const) {
+    let calls = 0;
+    const service = new DetectionService(
+      { findActiveBySha256: () => undefined } as never,
+      { analyze: async () => (++calls === 1 ? { ...deleteResult, action } : allowResult) } as never
+    );
+    assert.equal((await service.analyze(Buffer.from('image'), 'x.png', 'guild-1', 'm1', 'same-sha')).action, action);
+    assert.equal((await service.analyze(Buffer.from('image'), 'x.png', 'guild-2', 'm2', 'same-sha')).action, 'allow');
+    assert.equal(calls, 2);
+  }
+});
