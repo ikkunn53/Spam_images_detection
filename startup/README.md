@@ -59,6 +59,22 @@ AI_SERVICE_PORT=8004
 
 ## 前提
 
+### Node.js を変更した後に SQLite の起動エラーが出る場合
+
+`NODE_MODULE_VERSION` の不一致は、依存関係をインストールしたときと起動時の Node.js が異なる場合に発生します。Node.js 22 を推奨します。セットアップと起動には同じ Node.js を使用してください。
+
+`npm start` と `npm run dev` は、起動前に SQLite の読み込みを確認し、失敗した場合は `npm rebuild better-sqlite3` を実行します。再ビルドに失敗する場合は、Node.js 22 に切り替えて新しいターミナルを開き、次を実行してください。DB と `.env` の削除は不要です。
+
+```bat
+cd discord-bot
+node --version
+npm install
+npm run build
+npm start
+```
+
+Node.js 24 を使用し続ける場合は、ネイティブ依存関係のビルドに Python と Visual Studio C++ Build Tools が必要になる場合があります。
+
 - Windows
 - Node.js 20+
 - Python 3.11+
