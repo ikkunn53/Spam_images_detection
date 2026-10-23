@@ -120,7 +120,7 @@ docker-compose.yml  Bot + AI Service 起動例
 3. Content-Type、拡張子、サイズを確認。
 4. 同時ダウンロード数とタイムアウトを制限して画像を取得。
 5. 実データを `sharp` で検証し、SHA-256 を計算。
-6. 短期 Cache または SQLite で SHA-256 完全一致判定。
+6. SQLite と AI Service で SHA-256 完全一致判定（登録解除を即時反映するため判定結果はキャッシュしません）。
 7. AI Service で pHash と DINOv2 類似度を計算。
 8. SHA-256 完全一致、または同じ登録画像に対する pHash と DINOv2 の複合一致だけを高信頼度とする。
 9. 高信頼度は自動削除 + ログ。pHash または DINOv2 の単独一致はレビュー、低信頼度は通過。
@@ -232,7 +232,7 @@ Bot 起動中に `http://localhost:3000/dashboard/guilds` から Discord OAuth2 
 
 ## スパム画像管理画面
 
-AI Service 起動中に `http://localhost:8000/v1/admin/spam-images` を開くと、登録済みスパム画像を一覧表示できます。Bot Web 管理画面では、`BOT_OWNER_USER_IDS` に含まれる BOT 運営者でログインした場合だけ、上部ナビゲーションにある「スパム画像管理」から同ページを開けます。誤登録した画像は「削除」ボタンで無効化でき、無効化後は検知対象から外れます。画像ファイル自体は監査・復元用に保存されたままです。`ADMIN_WEB_TOKEN` を設定した場合は、初回アクセス時に `http://localhost:8000/v1/admin/spam-images?token=設定値` を開くことで管理 Cookie が発行され、以降の登録・編集・削除操作にも認証が必要になります。
+AI Service 起動中に `http://localhost:8000/v1/admin/spam-images` を開くと、登録済みスパム画像を一覧表示できます。Bot Web 管理画面では、`BOT_OWNER_USER_IDS` に含まれる BOT 運営者でログインした場合だけ、上部ナビゲーションにある「スパム画像管理」から同ページを開けます。誤登録した画像は「削除」ボタンで無効化でき、無効化後は検知対象から外れます。画像ファイル自体は監査・復元用に保存されたままです。`ADMIN_WEB_TOKEN` を設定した場合は、初回アクセス時に `http://localhost:8000/v1/admin/spam-images?token=設定値` を開くことで管理 Cookie が発行され、以降の登録・編集・削除操作と保存画像の取得にも認証が必要になります。Bot からの登録（起動時取り込み、スラッシュコマンド、レビューボタン）を継続するには、`discord-bot/.env` の `ADMIN_WEB_TOKEN` にも AI Service と同じ値を設定してください。
 
 ## ローカルファイルからのスパム画像取り込み
 

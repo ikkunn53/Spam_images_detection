@@ -40,6 +40,10 @@ export const configureLogChannelCommand = {
       .setName('show')
       .setDescription('現在の検知ログ送信先チャンネルを表示します')),
   async execute(interaction: ChatInputCommandInteraction) {
+    if (!interaction.guildId || !interaction.memberPermissions?.has(PermissionFlagsBits.ManageGuild)) {
+      await interaction.reply({ content: 'この操作にはサーバー内での ManageGuild 権限が必要です。', flags: MessageFlags.Ephemeral });
+      return;
+    }
     if (!interaction.guildId) {
       await interaction.reply({ content: 'サーバー内でのみ使用できます。', flags: MessageFlags.Ephemeral });
       return;

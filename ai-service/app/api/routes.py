@@ -96,7 +96,8 @@ async def analyze(file: UploadFile = File(...), guild_id: str = Form(''), messag
         raise bad_image_error(error) from error
 
 @router.post('/spam-images')
-async def create_spam_image(file: UploadFile = File(...), guild_id: str = Form(''), registered_by_user_id: str = Form(''), category: str = Form(''), notes: str = Form('')):
+async def create_spam_image(request: Request, file: UploadFile = File(...), guild_id: str = Form(''), registered_by_user_id: str = Form(''), category: str = Form(''), notes: str = Form('')):
+    require_admin(request)
     data = await read_limited_upload(file)
     digest = sha256(data)
     existing = repo.find_by_sha256(digest)
@@ -125,7 +126,7 @@ async def create_spam_image(file: UploadFile = File(...), guild_id: str = Form('
 @router.post('/admin/spam-images')
 async def admin_create_spam_image(request: Request, file: UploadFile = File(...), guild_id: str = Form(''), registered_by_user_id: str = Form(''), category: str = Form(''), notes: str = Form('')):
     require_admin(request)
-    await create_spam_image(file, guild_id, registered_by_user_id, category, notes)
+    await create_spam_image(request, file, guild_id, registered_by_user_id, category, notes)
     return RedirectResponse('/v1/admin/spam-images', status_code=status.HTTP_303_SEE_OTHER)
 
 @router.post('/admin/spam-images/{spam_image_id}/metadata')
@@ -136,7 +137,8 @@ def admin_update_spam_image_metadata(request: Request, spam_image_id: int, categ
     return RedirectResponse('/v1/admin/spam-images', status_code=status.HTTP_303_SEE_OTHER)
 
 @router.get('/spam-images/{spam_image_id}/image')
-def get_spam_image_file(spam_image_id: int):
+def get_spam_image_file(request: Request, spam_image_id: int):
+    require_admin(request)
     row = repo.find_by_id(spam_image_id)
     if not row or not row.get('image_path'):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='spam image not found')

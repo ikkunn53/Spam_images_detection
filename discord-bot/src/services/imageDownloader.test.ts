@@ -16,6 +16,12 @@ test('downloads real images directly and through redirects with Node.js global d
     } else if (req.url === '/loop') {
       res.writeHead(302, { location: '/loop' });
       res.end();
+    } else if (req.url === '/not-found') {
+      res.writeHead(404, { 'content-type': 'image/png' });
+      res.end(image);
+    } else if (req.url === '/wrong-type') {
+      res.writeHead(200, { 'content-type': 'text/html' });
+      res.end('not an image');
     } else {
       res.writeHead(200, { 'content-type': 'image/png' });
       res.end(image);
@@ -32,6 +38,8 @@ test('downloads real images directly and through redirects with Node.js global d
       assert.equal(result.contentType, 'image/png');
     }
     await assert.rejects(downloadImageFromUrl(`${base}/loop`));
+    await assert.rejects(downloadImageFromUrl(`${base}/not-found`), /HTTP 404/);
+    await assert.rejects(downloadImageFromUrl(`${base}/wrong-type`), /Unexpected content-type/);
   } finally {
     server.closeAllConnections();
     await new Promise<void>((resolve, reject) => server.close((error) => error ? reject(error) : resolve()));

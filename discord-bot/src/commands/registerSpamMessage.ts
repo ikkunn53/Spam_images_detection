@@ -82,6 +82,10 @@ export const registerSpamMessageCommand = {
     .setType(ApplicationCommandType.Message)
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages),
   async execute(interaction: MessageContextMenuCommandInteraction) {
+    if (!interaction.guildId || !interaction.memberPermissions?.has(PermissionFlagsBits.ManageMessages)) {
+      await interaction.reply({ content: 'この操作にはサーバー内での ManageMessages 権限が必要です。', flags: MessageFlags.Ephemeral });
+      return;
+    }
     const message = await fetchFullTargetMessage(interaction);
     const targets = registrationTargets(message, interaction);
     if (targets.length === 0) {

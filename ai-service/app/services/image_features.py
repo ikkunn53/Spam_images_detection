@@ -15,10 +15,10 @@ def load_image(data: bytes) -> Image.Image:
         raise ValueError('image too large')
     img = Image.open(io.BytesIO(data))
     img.verify()
-    img = Image.open(io.BytesIO(data)).convert('RGB')
-    if img.width * img.height > 40_000_000:
-        raise ValueError('image pixel count too large')
-    return img
+    with Image.open(io.BytesIO(data)) as img:
+        if img.width * img.height > 40_000_000:
+            raise ValueError('image pixel count too large')
+        return img.convert('RGB')
 
 def sha256(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()
@@ -30,12 +30,17 @@ def hamming(a: str, b: str) -> int:
     return imagehash.hex_to_hash(a) - imagehash.hex_to_hash(b)
 
 async def embedding(img: Image.Image) -> list[float]:
-    global _model, _processor
+    # Keep model loading and CPU inference off the HTTP event loop. Serialize
+    # access so concurrent requests do not load duplicate models or exhaust RAM.
     async with _model_lock:
-        if _model is None or _processor is None:
-            _processor = AutoImageProcessor.from_pretrained(settings.dinov2_model_name)
-            _model = AutoModel.from_pretrained(settings.dinov2_model_name)
-            _model.eval()
+        return await asyncio.to_thread(_embedding_sync, img)
+
+def _embedding_sync(img: Image.Image) -> list[float]:
+    global _model, _processor
+    if _model is None or _processor is None:
+        _processor = AutoImageProcessor.from_pretrained(settings.dinov2_model_name)
+        _model = AutoModel.from_pretrained(settings.dinov2_model_name)
+        _model.eval()
     inputs = _processor(images=img, return_tensors='pt')
     with torch.no_grad():
         outputs = _model(**inputs)

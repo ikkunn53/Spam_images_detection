@@ -26,14 +26,27 @@ const fetchImageUrl = async (url: string, filename: string): Promise<DownloadedI
   const timeout = setTimeout(() => controller.abort(), config.downloadTimeoutMs);
   try {
     const response = await request(url, { signal: controller.signal, dispatcher: imageDispatcher });
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      response.body.once('error', () => {});
+      response.body.destroy();
+      throw new Error(`Image download failed: HTTP ${response.statusCode}`);
+    }
     const contentType = String(response.headers['content-type'] ?? '');
-    if (!allowedMimePrefixes.some((prefix) => contentType.startsWith(prefix))) throw new Error(`Unexpected content-type: ${contentType}`);
+    if (!allowedMimePrefixes.some((prefix) => contentType.startsWith(prefix))) {
+      response.body.once('error', () => {});
+      response.body.destroy();
+      throw new Error(`Unexpected content-type: ${contentType}`);
+    }
     const chunks: Buffer[] = [];
     let total = 0;
     for await (const chunk of response.body) {
       const buf = Buffer.from(chunk);
       total += buf.length;
-      if (total > config.maxImageSizeBytes) throw new Error('Image exceeds size limit');
+      if (total > config.maxImageSizeBytes) {
+        response.body.once('error', () => {});
+        response.body.destroy();
+        throw new Error('Image exceeds size limit');
+      }
       chunks.push(buf);
     }
     const buffer = Buffer.concat(chunks);
