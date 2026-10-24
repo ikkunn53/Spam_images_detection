@@ -106,3 +106,35 @@ def test_stop_refuses_unrelated_process(project):
     result = run(root, env, 'stop')
     assert result.returncode == 1
     assert 'refusing to stop' in result.stderr
+
+
+def test_background_survives_launcher_exit_and_sighup(project):
+    import signal
+    from urllib.request import ProxyHandler, build_opener
+    root, env = project
+    try:
+        result = run(root, env, 'start-background')
+        assert result.returncode == 0, result.stderr
+        assert 'SSH may be disconnected' in result.stdout
+        state = json.loads((root / 'data/linux-runtime/supervisor.json').read_text())
+        pid = state['pid']
+        assert os.getsid(pid) == pid  # detached from the launcher's SSH session
+        os.kill(pid, signal.SIGHUP)
+        time.sleep(0.4)
+        assert Path(f'/proc/{pid}').exists()
+        port = int((root / 'ai-service/.env').read_text().split('=')[1])
+        with build_opener(ProxyHandler({})).open(f'http://127.0.0.1:{port}/health', timeout=2) as response:
+            assert response.status == 200
+        duplicate = run(root, env, 'start-background')
+        assert duplicate.returncode == 1
+        assert json.loads((root / 'data/linux-runtime/supervisor.json').read_text())['pid'] == pid
+    finally:
+        assert run(root, env, 'stop').returncode == 0
+
+
+def test_background_reports_bot_startup_failure(project):
+    root, env = project
+    result = run(root, {**env, 'BOT_EXIT': '1'}, 'start-background')
+    assert result.returncode == 1
+    assert 'Background startup failed' in result.stderr
+    assert not (root / 'data/linux-runtime/supervisor.json').exists()

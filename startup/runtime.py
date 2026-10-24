@@ -1,4 +1,4 @@
-"""Linux foreground supervisor. Read dotenv as data, never shell code."""
+"""Linux service supervisor with detached and foreground modes. Read dotenv as data, never shell code."""
 import argparse
 import fcntl
 import json
@@ -9,6 +9,7 @@ import socket
 import subprocess
 import sys
 import time
+import uuid
 from urllib.parse import urlparse
 from urllib.request import ProxyHandler, build_opener
 
@@ -53,7 +54,45 @@ def stop():
     raise RuntimeError('Shutdown did not complete; check data/logs and the startup terminal.')
 
 
-def start(ai_only=False):
+def start_background(ai_only=False):
+    os.umask(0o077)
+    log_path = ROOT / 'data' / 'logs' / 'supervisor.log'
+    log_path.parent.mkdir(parents=True, exist_ok=True)
+    launch_id = uuid.uuid4().hex
+    command = [sys.executable, str(Path(__file__).resolve()), 'start', '--detached', '--launch-id', launch_id]
+    if ai_only:
+        command.append('--ai-only')
+    with log_path.open('ab', buffering=0) as output:
+        child = subprocess.Popen(command, stdin=subprocess.DEVNULL, stdout=output,
+                                 stderr=subprocess.STDOUT, start_new_session=True)
+    deadline = time.monotonic() + 75
+    ready_since = None
+    while time.monotonic() < deadline:
+        if child.poll() is not None:
+            print(f'ERROR: Background startup failed. See {log_path}', file=sys.stderr)
+            return 1
+        try:
+            state = json.loads(STATE.read_text())
+        except (OSError, ValueError):
+            state = {}
+        if state.get('launch_id') == launch_id and state.get('ready'):
+            ready_since = ready_since or time.monotonic()
+            # Catch immediate Bot startup failures before reporting success.
+            if time.monotonic() - ready_since >= 1:
+                print(f'Running in background (supervisor PID {child.pid}). SSH may be disconnected.')
+                print('Stop: bash startup/stop-bot.sh; logs: data/logs/')
+                return 0
+        time.sleep(0.1)
+    child.terminate()
+    try:
+        child.wait(timeout=15)
+    except subprocess.TimeoutExpired:
+        child.kill()
+        child.wait()
+    raise RuntimeError(f'Background startup timed out. See {log_path}')
+
+
+def start(ai_only=False, detached=False, launch_id=None):
     os.umask(0o077)
     RUNTIME.mkdir(parents=True, exist_ok=True)
     lock = (RUNTIME / 'supervisor.lock').open('a')
@@ -72,7 +111,7 @@ def start(ai_only=False):
 
     signal.signal(signal.SIGTERM, request_stop)
     signal.signal(signal.SIGINT, request_stop)
-    signal.signal(signal.SIGHUP, request_stop)
+    signal.signal(signal.SIGHUP, signal.SIG_IGN if detached else request_stop)
 
     def launch(service, command, env):
         log_path = ROOT / 'data' / 'logs' / f'{service}.log'
@@ -109,7 +148,7 @@ def start(ai_only=False):
                 probe.bind(('127.0.0.1', port))
             except OSError as error:
                 raise RuntimeError(f'AI port {port} is unavailable. Stop the existing service or change both AI_SERVICE_PORT and AI_SERVICE_URL.') from error
-        state = {'pid': os.getpid(), 'starttime': process_identity(os.getpid())}
+        state = {'pid': os.getpid(), 'starttime': process_identity(os.getpid()), 'launch_id': launch_id, 'ready': False}
         temporary = STATE.with_suffix('.tmp')
         temporary.write_text(json.dumps(state))
         temporary.replace(STATE)
@@ -134,7 +173,10 @@ def start(ai_only=False):
         print('AI service health check passed. Model inference was checked during setup unless skipped.', flush=True)
         if not ai_only:
             launch('discord-bot', ['node', 'dist/index.js'], bot_env)
-        print('Running in foreground. Press Ctrl+C or run bash startup/stop-bot.sh to stop both services.', flush=True)
+        state['ready'] = True
+        temporary.write_text(json.dumps(state))
+        temporary.replace(STATE)
+        print('Running in background.' if detached else 'Running in foreground. Press Ctrl+C or run bash startup/stop-bot.sh to stop both services.', flush=True)
         while not stopping:
             for child in children:
                 if child.poll() is not None:
@@ -167,11 +209,15 @@ def start(ai_only=False):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('command', choices=['start', 'stop'])
+    parser.add_argument('command', choices=['start', 'start-background', 'stop'])
     parser.add_argument('--ai-only', action='store_true')
+    parser.add_argument('--detached', action='store_true', help=argparse.SUPPRESS)
+    parser.add_argument('--launch-id', help=argparse.SUPPRESS)
     args = parser.parse_args()
     try:
-        return start(args.ai_only) if args.command == 'start' else stop()
+        if args.command == 'start-background':
+            return start_background(args.ai_only)
+        return start(args.ai_only, args.detached, args.launch_id) if args.command == 'start' else stop()
     except (OSError, RuntimeError, ValueError) as error:
         print(f'ERROR: {error}', file=sys.stderr)
         return 1

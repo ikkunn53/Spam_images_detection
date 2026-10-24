@@ -123,13 +123,17 @@ AI_SERVICE_URL=http://127.0.0.1:8004
 
 ```bash
 bash startup/start-bot.sh
-# 別ターミナルで停止、または起動ターミナルで Ctrl+C
+# 別ターミナルで停止
 bash startup/stop-bot.sh
 ```
 
 起動時に Bot をビルドし直し、SQLite の互換性を確認します。AI サービスを先に起動して `/health` の応答を確認してから Bot を起動します。AI と Bot は同じスーパーバイザーで管理し、片方が終了したら残りも停止します。重複起動と既存 AI ポートの使用を検出します。PID はプロセス開始時刻も照合し、無関係なプロセスを停止しません。
 
-フォアグラウンドで動くため、起動ターミナルを維持してください。ログは `data/logs/ai-service.log` と `data/logs/discord-bot.log` です。モデルキャッシュは `.hf-cache` です。自動ローテーションは含まれないため、長期運用ではログのローテーションを設定してください。
+既定ではバックグラウンドで起動し、起動コマンドが正常終了した後は SSH を切断しても継続します。標準入出力をターミナルから分離し、独立したセッションで管理します。起動失敗時は成功扱いにせず、エラーを返します。停止には `bash startup/stop-bot.sh` を使用してください。
+
+ターミナル内で動作を確認したい場合は `bash startup/start-bot.sh --foreground` を使用します。このモードは Ctrl+C で両サービスを停止します。OS 再起動後の自動起動・異常終了後の自動再起動は含みません。
+
+ログは `data/logs/ai-service.log`、`data/logs/discord-bot.log`、起動管理用の `data/logs/supervisor.log` です。Bot の Discord 接続成功は `discord-bot.log` の `bot ready` で確認してください。モデルキャッシュは `.hf-cache` です。自動ローテーションは含まれないため、長期運用ではログのローテーションを設定してください。
 
 ```bash
 tail -f data/logs/ai-service.log data/logs/discord-bot.log

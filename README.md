@@ -194,7 +194,7 @@ bash startup/setup.sh
 bash startup/start-bot.sh
 ```
 
-停止は Ctrl+C または `bash startup/stop-bot.sh` です。ポート変更、Windows からの移行、モデル取得、ログについては [Linux 手順](startup/README.md#linux-セットアップubuntu-2404--debian-12) を参照してください。
+既定ではバックグラウンド起動し、SSH を切断しても継続します。停止は `bash startup/stop-bot.sh` です。ターミナル内で動かす場合は `bash startup/start-bot.sh --foreground` を使用します。ポート変更、Windows からの移行、モデル取得、ログについては [Linux 手順](startup/README.md#linux-セットアップubuntu-2404--debian-12) を参照してください。
 
 ### ローカル開発
 
