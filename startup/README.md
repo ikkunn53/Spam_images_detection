@@ -121,6 +121,15 @@ AI_SERVICE_URL=http://127.0.0.1:8004
 
 ### 起動・停止
 
+セットアップ後はリポジトリ直下の `start.sh` と `stop.sh` を実行してください。内部で以下の `startup/` の処理を呼び出すため、ログ・重複起動防止・安全な停止は共通です。
+
+```bash
+./start.sh
+./stop.sh
+```
+
+実行権限がない場合は `chmod +x start.sh stop.sh`、または `bash start.sh` / `bash stop.sh` を使用します。`./start.sh --foreground` でターミナル内実行、`./start.sh --ai-only` で AI のみの起動も可能です。
+
 ```bash
 bash startup/start-bot.sh
 # 別ターミナルで停止

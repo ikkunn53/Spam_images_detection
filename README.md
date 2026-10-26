@@ -194,6 +194,15 @@ bash startup/setup.sh
 bash startup/start-bot.sh
 ```
 
+セットアップ後は、ルート直下の実行ファイルだけで起動・停止できます。
+
+```bash
+./start.sh   # AI サービスと Bot をバックグラウンドで起動
+./stop.sh    # AI サービスと Bot を停止
+```
+
+実行権限が失われている場合は `chmod +x start.sh stop.sh` を実行するか、`bash start.sh` / `bash stop.sh` を使用してください。別のディレクトリから絶対パスで実行することもできます。初回の依存導入と `.env` の設定は上記のセットアップ手順で行ってください。
+
 既定ではバックグラウンド起動し、SSH を切断しても継続します。停止は `bash startup/stop-bot.sh` です。ターミナル内で動かす場合は `bash startup/start-bot.sh --foreground` を使用します。ポート変更、Windows からの移行、モデル取得、ログについては [Linux 手順](startup/README.md#linux-セットアップubuntu-2404--debian-12) を参照してください。
 
 ### ローカル開発
