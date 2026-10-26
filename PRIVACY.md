@@ -1,6 +1,12 @@
+---
+layout: default
+title: プライバシーポリシー
+lang: ja
+---
+
 # プライバシーポリシー
 
-最終更新日: 2026年8月27日
+最終更新日: 2026年8月28日
 
 本プライバシーポリシーは、Discord Image Spam Detection Bot（以下「本Bot」）における、利用者情報の取り扱いについて説明するものです。本Botを導入または利用した場合、本ポリシーに記載された取り扱いに同意したものとみなします。
 
@@ -87,4 +93,3 @@ Bot運営者は、取得した情報への不正アクセス、漏えい、改�
 - [GitHub Issues](https://github.com/ikkunn53/Spam_images_detection/issues)
 
 公開のIssueにDiscordユーザーIDなどの個人情報を直接記載しないでください。必要な情報の安全な受け渡し方法は、Issue上で個別に案内します。
-
